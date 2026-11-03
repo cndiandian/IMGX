@@ -165,10 +165,10 @@ struct ContentView: View {
                 Image(systemName: "slider.horizontal.3").frame(width: 32, height: 32)
             }
                 .accessibilityLabel("更多设置").buttonStyle(.borderless)
-                .help("更多设置…")
+                .help("更多设置")
                 .popover(isPresented: $advanced) { advancedSettings }
             Spacer(minLength: 0)
-            PrimaryActionButton(title: model.isChoosingExportDestination ? "选择保存位置…" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片…") {
+            PrimaryActionButton(title: model.isChoosingExportDestination ? "选择保存位置" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 model.chooseExportDirectory()
             }
@@ -248,7 +248,7 @@ struct ContentView: View {
             Text("图片压缩与转换").font(.system(size: 27, weight: .semibold))
             Text("本地处理 · 多格式输出 · 保留原文件")
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
-            PrimaryActionButton(title: "选择图片…", isDefault: true) { model.chooseImages() }
+            PrimaryActionButton(title: "选择图片", isDefault: true) { model.chooseImages() }
                 .frame(height: 32).fixedSize(horizontal: true, vertical: false).padding(.top, 30)
             Text("或将图片拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
             Text("JPG · JPEG · PNG · WebP · HEIC")
@@ -266,7 +266,7 @@ struct ContentView: View {
                 Text("\(model.items.count) 张").foregroundStyle(.secondary).font(.caption)
             }
             Button { model.chooseImages() } label: {
-                Label("添加图片…", systemImage: "plus").frame(maxWidth: .infinity)
+                Label("添加图片", systemImage: "plus").frame(maxWidth: .infinity)
             }
             .controlSize(.large).disabled(model.isExporting)
             ScrollViewReader { proxy in
@@ -428,9 +428,9 @@ struct ImageCommands: Commands {
     @FocusedValue(\.imageActions) private var actions
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("添加图片…") { actions?.add() }
+            Button("添加图片") { actions?.add() }
                 .keyboardShortcut("o").disabled(actions?.canAdd != true)
-            Button("导出全部图片…") { actions?.export() }
+            Button("导出全部图片") { actions?.export() }
                 .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
         }
         CommandGroup(after: .pasteboard) {
@@ -446,7 +446,7 @@ struct ImageCommands: Commands {
             Button("适应窗口") { actions?.reset() }
                 .keyboardShortcut("0").disabled(actions?.hasImages != true)
             Divider()
-            Button("更多图像设置…") { actions?.showAdvanced() }.disabled(actions?.canChangeSettings != true)
+            Button("更多图像设置") { actions?.showAdvanced() }.disabled(actions?.canChangeSettings != true)
         }
     }
 }

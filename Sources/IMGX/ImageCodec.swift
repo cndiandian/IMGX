@@ -11,7 +11,7 @@ enum OutputFormat: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum SizePreset: String, CaseIterable, Identifiable, Sendable {
-    case original = "原尺寸", half = "50%", quarter = "25%", custom = "自定义…"
+    case original = "原尺寸", half = "50%", quarter = "25%", custom = "自定义"
     var id: Self { self }
 }
 
