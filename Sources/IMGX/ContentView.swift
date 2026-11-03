@@ -168,11 +168,12 @@ struct ContentView: View {
                 .help("更多设置")
                 .popover(isPresented: $advanced) { advancedSettings }
             Spacer(minLength: 0)
-            PrimaryActionButton(title: model.isChoosingExportDestination ? "选择保存位置" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
+            Button(model.isChoosingExportDestination ? "选择保存位置" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 model.chooseExportDirectory()
             }
-            .frame(height: 32).fixedSize(horizontal: true, vertical: false).disabled(model.isExporting)
+            .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
+            .disabled(model.isExporting)
             .help("选择文件夹后导出列表中的全部图片（⌘Return）")
         }
         .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
@@ -248,8 +249,9 @@ struct ContentView: View {
             Text("图片压缩与转换").font(.system(size: 27, weight: .semibold))
             Text("本地处理 · 多格式输出 · 保留原文件")
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
-            PrimaryActionButton(title: "选择图片", isDefault: true) { model.chooseImages() }
-                .frame(height: 32).fixedSize(horizontal: true, vertical: false).padding(.top, 30)
+            Button("选择图片") { model.chooseImages() }
+                .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
+                .padding(.top, 30)
             Text("或将图片拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
             Text("JPG · JPEG · PNG · WebP · HEIC")
                 .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
