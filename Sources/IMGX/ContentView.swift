@@ -50,7 +50,9 @@ struct ContentView: View {
             add: { model.chooseImages() },
             canAdd: !model.isExporting,
             reset: { resetCanvas = UUID() },
-            hasImages: !model.items.isEmpty
+            hasImages: !model.items.isEmpty,
+            export: { model.chooseExportDirectory() },
+            canExport: !model.items.isEmpty && !model.isExporting
         ))
     }
 
@@ -126,8 +128,11 @@ struct ContentView: View {
                 .labelStyle(.iconOnly).help("更多设置")
                 .popover(isPresented: $advanced) { advancedSettings }
             Spacer(minLength: 0)
-            Button("导出 \(model.items.count) 张图片") { }
-                .buttonStyle(MonochromeButtonStyle()).disabled(true)
+            Button(model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+                model.chooseExportDirectory()
+            }
+            .buttonStyle(MonochromeButtonStyle()).disabled(model.isExporting)
         }
         .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
         .disabled(model.isExporting)
@@ -306,6 +311,8 @@ struct ImageActions {
     var canAdd: Bool
     var reset: () -> Void
     var hasImages: Bool
+    var export: () -> Void
+    var canExport: Bool
 }
 
 struct ImageActionsKey: FocusedValueKey { typealias Value = ImageActions }
@@ -322,6 +329,8 @@ struct ImageCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("添加图片…") { actions?.add() }
                 .keyboardShortcut("o").disabled(actions?.canAdd != true)
+            Button("导出全部图片…") { actions?.export() }
+                .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
         }
         CommandGroup(after: .toolbar) {
             Button("适应窗口") { actions?.reset() }

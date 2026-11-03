@@ -180,6 +180,57 @@ final class AppModel {
         selectedID = nil
     }
 
+    func chooseExportDirectory() {
+        guard !isExporting, !items.isEmpty else { return }
+        let snapshot = settings
+        let batch = items.map { ($0.id, $0.url) }
+        let panel = NSOpenPanel()
+        panel.title = "选择导出文件夹"
+        panel.prompt = "导出图片"
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        isExporting = true
+        panel.begin { [weak self] response in
+            Task { @MainActor in
+                guard let self else { return }
+                guard response == .OK, let directory = panel.url else { self.isExporting = false; return }
+                await self.performExport(to: directory, settings: snapshot, batch: batch)
+            }
+        }
+    }
+
+    // Also used by integration tests to exercise the real batch workflow.
+    func export(to directory: URL) async {
+        guard !isExporting, !items.isEmpty else { return }
+        isExporting = true
+        await performExport(to: directory, settings: settings, batch: items.map { ($0.id, $0.url) })
+    }
+
+    private func performExport(to directory: URL, settings snapshot: ConversionSettings, batch: [(UUID, URL)]) async {
+        let access = directory.startAccessingSecurityScopedResource()
+        defer {
+            if access { directory.stopAccessingSecurityScopedResource() }
+            isExporting = false
+        }
+        completedCount = 0
+        var successes = 0
+        for index in items.indices { items[index].status = .pending }
+        for (id, url) in batch {
+            if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .processing }
+            do {
+                let result = try await ImageProcessor.shared.export(url: url, settings: snapshot, directory: directory)
+                if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .complete(result.byteCount) }
+                successes += 1
+            } catch {
+                if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .failed(error.localizedDescription) }
+            }
+            completedCount += 1
+        }
+        notify("已导出 \(successes)/\(batch.count) 张图片，保存至 \(directory.path)" + (successes < batch.count ? "。失败原因可在文件列表查看。" : ""), kind: .export)
+    }
+
     func moveSelection(_ delta: Int) {
         guard !items.isEmpty else { return }
         let index = items.firstIndex { $0.id == selectedID } ?? 0
