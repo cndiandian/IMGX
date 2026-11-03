@@ -35,10 +35,10 @@ struct ContentView: View {
         .background(Color(nsColor: .windowBackgroundColor))
         .background(KeyboardBridge(isEditing: advanced, remove: { model.removeSelected() }).frame(width: 0, height: 0))
         .blur(radius: dropTargeted && !model.isExporting ? 2 : 0)
+        .overlay(alignment: .bottom) { toast.padding(24) }
         .overlay {
             if dropTargeted && !model.isExporting { dropOverlay }
         }
-        .overlay(alignment: .bottom) { toast.padding(24) }
         .onDeleteCommand { if !advanced { model.removeSelected() } }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $dropTargeted) { providers in
             guard !model.isExporting else { return false }
@@ -344,9 +344,10 @@ struct ContentView: View {
 
     private var dropOverlay: some View {
         ZStack {
-            if reduceTransparency { RoundedRectangle(cornerRadius: 20).fill(Color(nsColor: .windowBackgroundColor)) }
-            else { RoundedRectangle(cornerRadius: 20).fill(.regularMaterial) }
+            if reduceTransparency { Rectangle().fill(Color(nsColor: .windowBackgroundColor)) }
+            else { Rectangle().fill(.regularMaterial) }
             RoundedRectangle(cornerRadius: 20).strokeBorder(.primary.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8]))
+                .padding(16)
             VStack(spacing: 16) {
                 Image(systemName: "square.and.arrow.down").font(.system(size: 40))
                 Text("松开以添加图片").font(.title2.weight(.semibold))
@@ -354,7 +355,9 @@ struct ContentView: View {
                 Text("本地处理，保留原文件").font(.caption).foregroundStyle(.secondary)
             }
         }
-        .padding(16).allowsHitTesting(false)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.container)
+        .allowsHitTesting(false)
     }
 
     @ViewBuilder private var toast: some View {
