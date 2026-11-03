@@ -4,3 +4,6 @@ dist/
 .swiftpm/
 *.xcuserstate
 xcuserdata/
+
+# Local UI audit evidence can contain user image content and file names.
+docs/hig-audit/*.png

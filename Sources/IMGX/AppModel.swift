@@ -21,6 +21,14 @@ enum ItemStatus {
         case .failed(let reason): "失败 · \(reason)"
         }
     }
+    var symbol: String {
+        switch self {
+        case .pending: "circle.dotted"
+        case .processing: "arrow.triangle.2.circlepath"
+        case .complete: "checkmark.circle"
+        case .failed: "exclamationmark.circle"
+        }
+    }
     var isFailure: Bool { if case .failed = self { true } else { false } }
 }
 
@@ -49,6 +57,7 @@ final class AppModel {
     var completedCount = 0
     private var previewTask: Task<Void, Never>?
     var isExporting = false
+    var isChoosingExportDestination = false
     var toast: ToastMessage?
     private var toastTask: Task<Void, Never>?
     var selected: ImageItem? { items.first { $0.id == selectedID } }
@@ -120,6 +129,8 @@ final class AppModel {
         toastTask?.cancel()
         let message = ToastMessage(text: text, kind: kind)
         toast = message
+        NSAccessibility.post(element: NSApplication.shared, notification: .announcementRequested,
+                             userInfo: [.announcement: text, .priority: NSAccessibilityPriorityLevel.medium.rawValue])
         if !persistent {
             toastTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(5))
@@ -135,15 +146,24 @@ final class AppModel {
     }
 
     func chooseImages() {
-        guard !isExporting else { return }
+        guard !isExporting, NSApp.mainWindow?.attachedSheet == nil else { return }
         let panel = NSOpenPanel()
         panel.title = "选择图片"
         panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.begin { [weak self] response in
+        present(panel) { [weak self] response in
             guard response == .OK else { return }
             Task { @MainActor in self?.add(panel.urls) }
+        }
+    }
+
+    private func present(_ panel: NSOpenPanel, completion: @escaping @MainActor (NSApplication.ModalResponse) -> Void) {
+        if let window = NSApp.mainWindow ?? NSApp.keyWindow {
+            guard window.attachedSheet == nil else { return }
+            panel.beginSheetModal(for: window, completionHandler: completion)
+        } else {
+            panel.begin(completionHandler: completion)
         }
     }
 
@@ -186,7 +206,7 @@ final class AppModel {
     }
 
     func chooseExportDirectory() {
-        guard !isExporting, !items.isEmpty else { return }
+        guard !isExporting, !items.isEmpty, NSApp.mainWindow?.attachedSheet == nil else { return }
         let snapshot = settings
         let batch = items.map { ($0.id, $0.url) }
         let panel = NSOpenPanel()
@@ -197,10 +217,12 @@ final class AppModel {
         panel.canCreateDirectories = true
         panel.allowsMultipleSelection = false
         completedCount = 0
+        isChoosingExportDestination = true
         isExporting = true
-        panel.begin { [weak self] response in
+        present(panel) { [weak self] response in
             Task { @MainActor in
                 guard let self else { return }
+                self.isChoosingExportDestination = false
                 guard response == .OK, let directory = panel.url else { self.isExporting = false; return }
                 await self.performExport(to: directory, settings: snapshot, batch: batch)
             }

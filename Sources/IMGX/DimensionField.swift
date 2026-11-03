@@ -5,6 +5,7 @@ import SwiftUI
 struct DimensionField: NSViewRepresentable {
     let title: String
     let focusGroup: DimensionFocusGroup
+    var validationMessage: String? = nil
     @Binding var text: String
     func makeCoordinator() -> Coordinator { Coordinator(text: $text, title: title, focusGroup: focusGroup) }
     func makeNSView(context: Context) -> NSTextField {
@@ -22,6 +23,8 @@ struct DimensionField: NSViewRepresentable {
     }
     func updateNSView(_ field: NSTextField, context: Context) {
         context.coordinator.text = $text
+        field.setAccessibilityHelp(validationMessage ?? "像素，正整数 1 到 16383；留空时可使用原尺寸。")
+        field.toolTip = validationMessage
         if field.stringValue != text { field.stringValue = text }
     }
     @MainActor final class Coordinator: NSObject, NSTextFieldDelegate {

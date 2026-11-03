@@ -67,17 +67,33 @@ struct ContentView: View {
             reset: { resetCanvas = UUID() },
             hasImages: !model.items.isEmpty,
             export: { model.chooseExportDirectory() },
-            canExport: !model.items.isEmpty && !model.isExporting
+            canExport: !model.items.isEmpty && !model.isExporting,
+            remove: { model.removeSelected() },
+            clear: { model.clear() },
+            canManageFiles: !model.items.isEmpty && !model.isExporting && !advanced,
+            showAdvanced: { advanced = true },
+            canChangeSettings: !model.items.isEmpty && !model.isExporting,
+            comparison: $comparisonMode
         ))
     }
 
     private var resultBar: some View {
         HStack(spacing: 14) {
             Text("预览").font(.system(size: 13, weight: .semibold))
-            if let preview = model.preview {
+            if model.isExporting && !model.isChoosingExportDestination {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("正在导出 · 已处理 \(model.completedCount)/\(model.items.count)")
+                        .font(.caption).monospacedDigit()
+                    ProgressView(value: Double(model.completedCount), total: Double(max(1, model.items.count)))
+                        .progressViewStyle(.linear).tint(.primary)
+                        .accessibilityLabel("导出进度")
+                        .accessibilityValue("已处理 \(model.completedCount) 张，共 \(model.items.count) 张")
+                }
+                .frame(width: 180)
+            } else if let preview = model.preview {
                 HStack(spacing: 8) {
                     Text(byteString(model.selected?.originalBytes ?? 0)).foregroundStyle(.secondary)
-                    Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                    Image(systemName: "arrow.right").foregroundStyle(.secondary).accessibilityHidden(true)
                     Text(byteString(Int64(preview.data.count))).fontWeight(.medium)
                     let original = Double(model.selected?.originalBytes ?? 0)
                     let difference = original > 0 ? (1 - Double(preview.data.count) / original) * 100 : 0
@@ -87,20 +103,26 @@ struct ContentView: View {
                         .background((difference >= 0 ? Color.green : .orange).opacity(0.16), in: Capsule())
                 }
                 .font(.system(size: 12)).monospacedDigit()
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isStaticText)
+                .accessibilityLabel("预览结果")
+                .accessibilityValue("原图 \(byteString(model.selected?.originalBytes ?? 0))，输出 \(byteString(Int64(preview.data.count)))；原图 \(preview.original.width) 乘 \(preview.original.height) 像素，输出 \(preview.decoded.width) 乘 \(preview.decoded.height) 像素")
                 .help("原图 \(preview.original.width)×\(preview.original.height) px → 输出 \(preview.decoded.width)×\(preview.decoded.height) px")
-            } else if model.previewLoading { ProgressView().controlSize(.small); Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
+            } else if model.previewLoading { Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
             Spacer(minLength: 0)
             ComparisonPicker(selection: $comparisonMode).frame(width: 108, height: 26)
             Button("适应窗口") { resetCanvas = UUID() }.font(.system(size: 12))
         }
         .padding(.horizontal, 20).frame(height: 54)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("编码预览结果")
     }
 
     private var previewCanvas: some View {
         ZStack {
             ComparisonCanvas(result: model.preview, imageID: model.selectedID, mode: comparisonMode,
                              resetID: resetCanvas, remove: { model.removeSelected() })
-            if model.previewLoading { ProgressView("正在编码…").padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) }
+            if model.previewLoading { ProgressView().controlSize(.regular).accessibilityLabel("正在生成编码预览").padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) }
             else if model.preview == nil { ContentUnavailableView("无法生成预览", systemImage: "exclamationmark.triangle", description: Text("检查图片或调整参数后重试")) }
             if model.preview != nil {
                 VStack {
@@ -131,48 +153,93 @@ struct ContentView: View {
                 Slider(value: $model.settings.quality, in: 1...100, step: 1).tint(.primary)
                     .disabled(!model.settings.usesQuality).frame(minWidth: 60, maxWidth: 110)
                     .accessibilityLabel("压缩质量")
+                    .accessibilityValue(model.settings.usesQuality ? "\(Int(model.settings.quality))，范围 1 到 100" : "无损，当前模式不使用质量参数")
+                    .help(model.settings.usesQuality ? "压缩质量：\(Int(model.settings.quality))（1～100）" : "PNG 和 WebP 无损模式不使用质量参数")
                 Text(model.settings.usesQuality ? "\(Int(model.settings.quality))" : "无损")
                     .monospacedDigit().frame(width: 28)
             }
             Picker("尺寸", selection: $model.settings.size) {
                 ForEach(SizePreset.allCases) { Text($0.rawValue).tag($0) }
             }.frame(width: 140)
-            Button("更多设置", systemImage: "slider.horizontal.3") { advanced.toggle() }
-                .labelStyle(.iconOnly).help("更多设置")
+            Button { advanced.toggle() } label: {
+                Image(systemName: "slider.horizontal.3").frame(width: 32, height: 32)
+            }
+                .accessibilityLabel("更多设置").buttonStyle(.borderless)
+                .help("更多设置…")
                 .popover(isPresented: $advanced) { advancedSettings }
             Spacer(minLength: 0)
-            Button(model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
+            PrimaryActionButton(title: model.isChoosingExportDestination ? "选择保存位置…" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片…") {
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 model.chooseExportDirectory()
             }
-            .buttonStyle(MonochromeButtonStyle()).disabled(model.isExporting)
+            .frame(height: 32).fixedSize(horizontal: true, vertical: false).disabled(model.isExporting)
+            .help("选择文件夹后导出列表中的全部图片（⌘Return）")
         }
         .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
         .disabled(model.isExporting)
         .onChange(of: model.settings.size) { _, preset in if preset == .custom { advanced = true } }
     }
 
+    private var dimensionError: String? {
+        guard model.settings.size == .custom else { return nil }
+        do {
+            _ = try model.settings.outputSize(width: Int(model.selectedPixelSize?.width ?? 1),
+                                             height: Int(model.selectedPixelSize?.height ?? 1))
+            return nil
+        } catch { return error.localizedDescription }
+    }
+
     private var advancedSettings: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("更多设置").font(.headline)
-            Toggle("WebP 无损压缩", isOn: $model.settings.lossless).disabled(model.settings.format != .webp)
+            if model.settings.format == .webp {
+                Toggle("WebP 无损压缩", isOn: $model.settings.lossless)
+            }
             Text(model.settings.format == .jpeg ? "JPEG 不支持透明，透明区域将铺白。" : "当前格式保留透明通道。")
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
             Text("自定义尺寸").fontWeight(.medium)
-            HStack(spacing: 10) {
-                DimensionField(title: "宽度", focusGroup: dimensionFocusGroup, text: Binding(get: { model.settings.width }, set: { model.editDimension($0, width: true) }))
-                    .frame(height: 24)
-                Text("×").foregroundStyle(.secondary)
-                DimensionField(title: "高度", focusGroup: dimensionFocusGroup, text: Binding(get: { model.settings.height }, set: { model.editDimension($0, width: false) }))
-                    .frame(height: 24)
-                Text("px").foregroundStyle(.secondary)
-            }.textFieldStyle(.roundedBorder)
-            Text("宽高按当前图片等比联动；批量处理保持各图比例。\n正整数 1～16383，均留空时保留原尺寸。")
+            HStack(alignment: .top, spacing: 16) {
+                dimensionInput("宽度", width: true)
+                dimensionInput("高度", width: false)
+            }
+            if let error = dimensionError {
+                Label(error, systemImage: "exclamationmark.circle")
+                    .font(.caption).foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel("尺寸错误：\(error)")
+            }
+            Label("按当前图片等比联动，批量处理保持各图比例。", systemImage: "link")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("正整数 1～16383；均留空时使用原尺寸。")
+                .font(.caption).foregroundStyle(.secondary)
             HStack { Spacer(); Button("完成") { advanced = false }.keyboardShortcut(.defaultAction) }
         }
         .padding(24).frame(width: 330)
+        .disabled(model.isExporting)
+    }
+
+    private func dimensionFieldError(_ value: String) -> String? {
+        guard !value.isEmpty else { return nil }
+        guard value.allSatisfy({ $0.isASCII && $0.isNumber }), let number = Int(value), (1...16383).contains(number)
+        else { return "请输入 1～16383 的正整数，或留空使用原尺寸。" }
+        return nil
+    }
+
+    private func dimensionInput(_ title: String, width: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(title)（px）").font(.caption).foregroundStyle(.secondary)
+            DimensionField(title: title, focusGroup: dimensionFocusGroup, validationMessage: dimensionFieldError(width ? model.settings.width : model.settings.height),
+                           text: Binding(get: { width ? model.settings.width : model.settings.height },
+                                         set: { model.editDimension($0, width: width) }))
+                .frame(height: 24)
+                .overlay {
+                    if dimensionFieldError(width ? model.settings.width : model.settings.height) != nil {
+                        RoundedRectangle(cornerRadius: 5).stroke(.red, lineWidth: 1)
+                    }
+                }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var emptyState: some View {
@@ -181,9 +248,8 @@ struct ContentView: View {
             Text("图片压缩与转换").font(.system(size: 27, weight: .semibold))
             Text("本地处理 · 多格式输出 · 保留原文件")
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
-            Button("选择图片…") { model.chooseImages() }
-                .buttonStyle(MonochromeButtonStyle())
-                .controlSize(.large).padding(.top, 30)
+            PrimaryActionButton(title: "选择图片…", isDefault: true) { model.chooseImages() }
+                .frame(height: 32).fixedSize(horizontal: true, vertical: false).padding(.top, 30)
             Text("或将图片拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
             Text("JPG · JPEG · PNG · WebP · HEIC")
                 .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
@@ -211,7 +277,7 @@ struct ContentView: View {
                                 fileCard(item)
                             }
                             .buttonStyle(.plain).id(item.id)
-                            .accessibilityLabel("\(item.url.lastPathComponent)，\(item.status.label)")
+                            .accessibilityLabel("\(item.url.lastPathComponent)，\(byteString(item.originalBytes))，\(item.status.label)")
                             .accessibilityAddTraits(item.id == model.selectedID ? .isSelected : [])
                         }
                     }
@@ -227,14 +293,19 @@ struct ContentView: View {
                 }
             }
             HStack {
-                Button("移除选中", systemImage: "minus.circle") { model.removeSelected() }
-                    .labelStyle(.iconOnly).help("移除选中图片")
+                Button { model.removeSelected() } label: {
+                    Image(systemName: "minus.circle").frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("移除选中图片")
+                .help("从列表移除选中图片，保留原文件（Delete）")
                 Spacer()
                 Button("清空列表") { model.clear() }.font(.caption)
             }
             .buttonStyle(.borderless).disabled(model.isExporting)
         }
         .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 16)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("图片列表")
     }
 
     private func fileCard(_ item: ImageItem) -> some View {
@@ -246,11 +317,12 @@ struct ContentView: View {
             .frame(width: 44, height: 44)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.url.lastPathComponent).font(.system(size: 12, weight: .medium))
+                Text(item.url.lastPathComponent).font(.system(size: 13, weight: .medium))
                     .lineLimit(1).truncationMode(.middle).help(item.url.lastPathComponent)
                 Text(byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
-                Text(item.status.label).font(.system(size: 10)).lineLimit(1)
-                    .foregroundStyle(item.status.isFailure ? Color.orange : Color.secondary)
+                Label(item.status.label, systemImage: item.status.symbol)
+                    .labelStyle(.titleAndIcon).font(.caption).lineLimit(1)
+                    .foregroundStyle(item.status.isFailure ? Color.primary : Color.secondary)
                     .help(item.status.label)
             }
             Spacer(minLength: 0)
@@ -283,12 +355,15 @@ struct ContentView: View {
     }
 
     @ViewBuilder private var toast: some View {
-        if let message = model.toast {
+        if let message = model.toast, !(advanced && dimensionError != nil && message.kind == .previewError) {
             HStack(spacing: 12) {
                 Image(systemName: message.kind == .previewError ? "exclamationmark.triangle" : "info.circle")
                 Text(message.text).font(.system(size: 12)).textSelection(.enabled)
-                Button("关闭提示", systemImage: "xmark") { model.dismissToast() }
-                    .labelStyle(.iconOnly).buttonStyle(.borderless)
+                Button { model.dismissToast() } label: {
+                    Image(systemName: "xmark").frame(width: 32, height: 32)
+                }
+                .accessibilityLabel("关闭提示").help("关闭提示")
+                .buttonStyle(.borderless)
             }
             .padding(16).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator.opacity(0.5)))
@@ -332,6 +407,12 @@ struct ImageActions {
     var hasImages: Bool
     var export: () -> Void
     var canExport: Bool
+    var remove: () -> Void
+    var clear: () -> Void
+    var canManageFiles: Bool
+    var showAdvanced: () -> Void
+    var canChangeSettings: Bool
+    var comparison: Binding<ComparisonMode>
 }
 
 struct ImageActionsKey: FocusedValueKey { typealias Value = ImageActions }
@@ -351,22 +432,20 @@ struct ImageCommands: Commands {
             Button("导出全部图片…") { actions?.export() }
                 .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
         }
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Button("移除选中图片") { actions?.remove() }.disabled(actions?.canManageFiles != true)
+            Button("清空图片列表") { actions?.clear() }.disabled(actions?.canManageFiles != true)
+        }
         CommandGroup(after: .toolbar) {
+            Picker("对比方式", selection: Binding(get: { actions?.comparison.wrappedValue ?? .slider },
+                                                set: { actions?.comparison.wrappedValue = $0 })) {
+                ForEach(ComparisonMode.allCases) { Text($0.rawValue).tag($0) }
+            }.disabled(actions?.hasImages != true)
             Button("适应窗口") { actions?.reset() }
                 .keyboardShortcut("0").disabled(actions?.hasImages != true)
+            Divider()
+            Button("更多图像设置…") { actions?.showAdvanced() }.disabled(actions?.canChangeSettings != true)
         }
-    }
-}
-
-struct MonochromeButtonStyle: ButtonStyle {
-    @Environment(\.colorScheme) private var scheme
-    @Environment(\.isEnabled) private var enabled
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .medium))
-            .padding(.horizontal, 20).padding(.vertical, 10)
-            .foregroundStyle(scheme == .dark ? Color.black : Color.white)
-            .background(scheme == .dark ? Color.white : Color(white: 0.16), in: RoundedRectangle(cornerRadius: 8))
-            .opacity(!enabled ? 0.35 : configuration.isPressed ? 0.75 : 1)
     }
 }

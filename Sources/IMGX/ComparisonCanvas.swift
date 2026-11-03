@@ -53,6 +53,13 @@ final class ComparisonView: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.image)
         setAccessibilityLabel("原图与转换结果对比画布")
+        setAccessibilityCustomActions([
+            NSAccessibilityCustomAction(name: "放大预览", target: self, selector: #selector(accessibleZoomIn)),
+            NSAccessibilityCustomAction(name: "缩小预览", target: self, selector: #selector(accessibleZoomOut)),
+            NSAccessibilityCustomAction(name: "适应窗口", target: self, selector: #selector(accessibleReset)),
+            NSAccessibilityCustomAction(name: "增加原图可见范围", target: self, selector: #selector(accessibleRevealOriginal)),
+            NSAccessibilityCustomAction(name: "增加转换结果可见范围", target: self, selector: #selector(accessibleRevealOutput))
+        ])
         setAccessibilityHelp("滚轮或捏合缩放，拖动平移，双击或 0 复位。方向键平移，+ 和 - 缩放，[ 和 ] 调整滑杆。")
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -92,7 +99,11 @@ final class ComparisonView: NSView {
             context.setShadow(offset: .zero, blur: 0)
             context.setFillColor(NSColor.windowBackgroundColor.cgColor)
             context.fillEllipse(in: CGRect(x: x - 17, y: bounds.midY - 17, width: 34, height: 34))
-            drawText("↔", at: CGPoint(x: x - 9, y: bounds.midY - 12), size: 19)
+            if let symbol = NSImage(systemSymbolName: "arrow.left.and.right", accessibilityDescription: nil)?
+                .withSymbolConfiguration(NSImage.SymbolConfiguration(paletteColors: [.labelColor])) {
+                symbol.draw(in: CGRect(x: x - 9, y: bounds.midY - 9, width: 18, height: 18),
+                            from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            }
         } else {
             let left = CGRect(x: 0, y: 0, width: bounds.width / 2, height: bounds.height)
             let right = left.offsetBy(dx: left.width, dy: 0)
@@ -117,8 +128,20 @@ final class ComparisonView: NSView {
         }
     }
 
-    private func drawText(_ text: String, at point: CGPoint, size: CGFloat) {
-        (text as NSString).draw(at: point, withAttributes: [.font: NSFont.systemFont(ofSize: size), .foregroundColor: NSColor.labelColor])
+    @objc func accessibleZoomIn() -> Bool {
+        applyZoom(1.2, at: CGPoint(x: bounds.midX, y: bounds.midY)); return true
+    }
+    @objc func accessibleZoomOut() -> Bool {
+        applyZoom(1 / 1.2, at: CGPoint(x: bounds.midX, y: bounds.midY)); return true
+    }
+    @objc func accessibleReset() -> Bool { reset(); return true }
+    @objc func accessibleRevealOriginal() -> Bool {
+        guard mode == .slider else { return false }
+        divider = min(0.98, divider + 0.05); needsDisplay = true; return true
+    }
+    @objc func accessibleRevealOutput() -> Bool {
+        guard mode == .slider else { return false }
+        divider = max(0.02, divider - 0.05); needsDisplay = true; return true
     }
 
     private func draw(_ image: CGImage, viewport: CGRect, clip: CGRect, context: CGContext) {

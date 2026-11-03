@@ -99,3 +99,12 @@
 这些事项与 PRD 第 9 节的后续验收边界一致，不作为已完成的实操结果。
 
 最终打包检查：`bash Scripts/build-app.sh` Release 构建及 `codesign --verify --strict` 通过；`plutil -lint` 通过；`otool -L` 仅列出系统框架和系统 Swift 库，无 Homebrew 动态库依赖；`git diff --check` 通过。
+
+## Apple HIG 专项检查（2026-11-03）
+
+- 主按钮改用 AppKit 原生按钮；完善深浅色文字对比、省略号和空状态 Return 操作。
+- 自定义尺寸增加永久标签、就地错误和字段说明；扩大图标点击范围、改善列表状态可读性。
+- 补齐菜单入口、原生窗口 Sheet、真实导出进度，以及通知播报和画布无障碍操作。
+- 12 项自动化测试通过；实际检查深浅色最小窗口、尺寸错误恢复和 Tab、菜单分屏、Return 与 Sheet。
+- 实际 12 张 1600×1000 PNG 批次导出成功，检查了原生进度指示器及处理期间禁用状态。
+- 详细问题、依据、截图与验收限制见 [HIG 检查报告](hig-audit/REPORT.md)。
