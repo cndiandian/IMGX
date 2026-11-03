@@ -161,3 +161,12 @@ enum ImageCodec {
         return try EncodedImage(data: data, original: image, decoded: decode(data))
     }
 }
+
+/// Serializes memory-heavy encoding work away from the UI actor.
+actor ImageProcessor {
+    static let shared = ImageProcessor()
+    func convert(url: URL, settings: ConversionSettings) throws -> EncodedImage {
+        try Task.checkCancellation()
+        return try autoreleasepool { try ImageCodec.convert(url: url, settings: settings) }
+    }
+}

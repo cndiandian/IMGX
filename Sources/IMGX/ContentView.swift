@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @State private var model = AppModel()
     @State private var dropTargeted = false
+    @State private var advanced = false
+    @State private var resetCanvas = UUID()
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
@@ -15,7 +17,13 @@ struct ContentView: View {
             Group {
                 if model.items.isEmpty { emptyState }
                 else {
-                    ContentUnavailableView("预览", systemImage: "photo", description: Text("\(model.selected?.url.lastPathComponent ?? "请选择图片")"))
+                    VStack(spacing: 0) {
+                        resultBar
+                        Divider()
+                        previewCanvas
+                        Divider()
+                        settingsBar
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -41,6 +49,93 @@ struct ContentView: View {
             add: { model.chooseImages() },
             canAdd: !model.isExporting
         ))
+    }
+
+    private var resultBar: some View {
+        HStack(spacing: 14) {
+            Text("预览").font(.system(size: 13, weight: .semibold))
+            if let preview = model.preview {
+                HStack(spacing: 8) {
+                    Text(byteString(model.selected?.originalBytes ?? 0)).foregroundStyle(.secondary)
+                    Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                    Text(byteString(Int64(preview.data.count))).fontWeight(.medium)
+                    let original = Double(model.selected?.originalBytes ?? 0)
+                    let difference = original > 0 ? (1 - Double(preview.data.count) / original) * 100 : 0
+                    Text(difference >= 0 ? "减少 \(difference, specifier: "%.1f")%" : "增加 \(-difference, specifier: "%.1f")%")
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background((difference >= 0 ? Color.green : .orange).opacity(0.16), in: Capsule())
+                }
+                .font(.system(size: 12)).monospacedDigit()
+                .help("原图 \(preview.original.width)×\(preview.original.height) px → 输出 \(preview.decoded.width)×\(preview.decoded.height) px")
+            } else if model.previewLoading { ProgressView().controlSize(.small); Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 20).frame(height: 54)
+    }
+
+    private var previewCanvas: some View {
+        ZStack {
+            Color(nsColor: .underPageBackgroundColor)
+            if let result = model.preview {
+                Image(decorative: result.decoded, scale: 1).resizable().scaledToFit().padding(32)
+            } else if model.previewLoading { ProgressView("正在编码…") }
+            else { ContentUnavailableView("无法生成预览", systemImage: "exclamationmark.triangle", description: Text("检查图片或调整参数后重试")) }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { NSApp.keyWindow?.makeFirstResponder(nil) }
+    }
+
+    private var settingsBar: some View {
+        HStack(spacing: 16) {
+            Picker("格式", selection: $model.settings.format) {
+                ForEach(OutputFormat.allCases) { Text($0.rawValue).tag($0) }
+            }.frame(width: 130)
+            HStack(spacing: 8) {
+                Text("质量").foregroundStyle(.secondary)
+                Slider(value: $model.settings.quality, in: 1...100, step: 1)
+                    .disabled(!model.settings.usesQuality).frame(minWidth: 60, maxWidth: 110)
+                    .accessibilityLabel("压缩质量")
+                Text(model.settings.usesQuality ? "\(Int(model.settings.quality))" : "无损")
+                    .monospacedDigit().frame(width: 28)
+            }
+            Picker("尺寸", selection: $model.settings.size) {
+                ForEach(SizePreset.allCases) { Text($0.rawValue).tag($0) }
+            }.frame(width: 140)
+            Button("更多设置", systemImage: "slider.horizontal.3") { advanced.toggle() }
+                .labelStyle(.iconOnly).help("更多设置")
+                .popover(isPresented: $advanced) { advancedSettings }
+            Spacer(minLength: 0)
+            Button("导出 \(model.items.count) 张图片") { }
+                .buttonStyle(MonochromeButtonStyle()).disabled(true)
+        }
+        .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
+        .disabled(model.isExporting)
+        .onChange(of: model.settings.size) { _, preset in if preset == .custom { advanced = true } }
+    }
+
+    private var advancedSettings: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("更多设置").font(.headline)
+            Toggle("WebP 无损压缩", isOn: $model.settings.lossless).disabled(model.settings.format != .webp)
+            Text(model.settings.format == .jpeg ? "JPEG 不支持透明，透明区域将铺白。" : "当前格式保留透明通道。")
+                .font(.caption).foregroundStyle(.secondary)
+            Divider()
+            Text("自定义尺寸").fontWeight(.medium)
+            HStack(spacing: 10) {
+                TextField("宽度", text: Binding(get: { model.settings.width }, set: { model.editDimension($0, width: true) }))
+                    .accessibilityLabel("自定义宽度")
+                Text("×").foregroundStyle(.secondary)
+                TextField("高度", text: Binding(get: { model.settings.height }, set: { model.editDimension($0, width: false) }))
+                    .accessibilityLabel("自定义高度")
+                Text("px").foregroundStyle(.secondary)
+            }.textFieldStyle(.roundedBorder)
+            Text("宽高按当前图片等比联动；批量处理保持各图比例。\n正整数 1～16383，均留空时保留原尺寸。")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            HStack { Spacer(); Button("完成") { advanced = false }.keyboardShortcut(.defaultAction) }
+        }
+        .padding(24).frame(width: 330)
     }
 
     private var emptyState: some View {

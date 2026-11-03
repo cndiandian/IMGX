@@ -38,11 +38,76 @@ struct ToastMessage: Identifiable {
 @MainActor @Observable
 final class AppModel {
     var items: [ImageItem] = []
-    var selectedID: UUID?
+    var selectedID: UUID? { didSet { if oldValue != selectedID { preview = nil; selectedPixelSize = nil; refreshPreview() } } }
+    var settings = ConversionSettings() { didSet { if oldValue != settings { refreshPreview() } } }
+    var preview: EncodedImage?
+    var selectedPixelSize: CGSize?
+    var previewLoading = false
+    var previewRevision = UUID()
+    var lastEditedWidth = true
+    var completedCount = 0
+    private var previewTask: Task<Void, Never>?
     var isExporting = false
     var toast: ToastMessage?
     private var toastTask: Task<Void, Never>?
     var selected: ImageItem? { items.first { $0.id == selectedID } }
+
+    func refreshPreview() {
+        previewTask?.cancel()
+        let revision = UUID()
+        previewRevision = revision
+        guard let item = selected else { preview = nil; previewLoading = false; clearPreviewError(); return }
+        let snapshot = settings
+        previewLoading = true
+        // Old result is hidden immediately so settings and displayed bytes never disagree.
+        preview = nil
+        previewTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(300))
+                let result = try await ImageProcessor.shared.convert(url: item.url, settings: snapshot)
+                guard let self, !Task.isCancelled, self.previewRevision == revision else { return }
+                self.selectedPixelSize = CGSize(width: result.original.width, height: result.original.height)
+                self.preview = result
+                self.previewLoading = false
+                self.clearPreviewError()
+                if snapshot.size == .custom {
+                    self.synchronizeDimensions(width: result.original.width, height: result.original.height)
+                }
+            } catch {
+                guard let self, !Task.isCancelled, self.previewRevision == revision else { return }
+                self.previewLoading = false
+                self.notify(error.localizedDescription, kind: .previewError, persistent: true)
+            }
+        }
+    }
+
+    func clearPreviewError() {
+        if toast?.kind == .previewError { dismissToast() }
+    }
+
+    func editDimension(_ value: String, width: Bool) {
+        lastEditedWidth = width
+        var next = settings
+        if width { next.width = value } else { next.height = value }
+        if value.isEmpty { next.width = ""; next.height = "" }
+        else if let source = selectedPixelSize,
+                let number = Int(value), (1...16383).contains(number) {
+            if width { next.height = String(max(1, Int((Double(number) * source.height / source.width).rounded()))) }
+            else { next.width = String(max(1, Int((Double(number) * source.width / source.height).rounded()))) }
+        }
+        next.size = .custom
+        settings = next
+    }
+
+    private func synchronizeDimensions(width: Int, height: Int) {
+        var next = settings
+        if lastEditedWidth, let w = Int(next.width), (1...16383).contains(w) {
+            next.height = String(max(1, Int((Double(w) * Double(height) / Double(width)).rounded())))
+        } else if !lastEditedWidth, let h = Int(next.height), (1...16383).contains(h) {
+            next.width = String(max(1, Int((Double(h) * Double(width) / Double(height)).rounded())))
+        }
+        if next != settings { settings = next }
+    }
 
     func notify(_ text: String, kind: ToastMessage.Kind = .notice, persistent: Bool = false) {
         toastTask?.cancel()
