@@ -9,5 +9,6 @@ struct IMGXApp: App {
         }
         .defaultSize(width: 1200, height: 800)
         .windowStyle(.hiddenTitleBar)
+        .commands { ImageCommands() }
     }
 }

@@ -1,17 +1,224 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
+    @State private var model = AppModel()
+    @State private var dropTargeted = false
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "inset.left.half.square.dashed")
-                .font(.system(size: 56, weight: .light))
-                .accessibilityHidden(true)
-            Text("IMGX").font(.largeTitle.bold())
-            Text("图片压缩与转换").font(.title2)
+        HStack(spacing: 0) {
+            if !model.items.isEmpty {
+                sidebar.frame(width: 236)
+                Divider()
+            }
+            Group {
+                if model.items.isEmpty { emptyState }
+                else {
+                    ContentUnavailableView("预览", systemImage: "photo", description: Text("\(model.selected?.url.lastPathComponent ?? "请选择图片")"))
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+        .blur(radius: dropTargeted && !model.isExporting ? 2 : 0)
+        .overlay {
+            if dropTargeted && !model.isExporting { dropOverlay }
+        }
+        .overlay(alignment: .bottom) { toast.padding(24) }
+        .onDrop(of: [UTType.fileURL.identifier], isTargeted: $dropTargeted) { providers in
+            guard !model.isExporting else { return false }
+            Task {
+                var urls: [URL] = []
+                for provider in providers {
+                    if let url = await droppedURL(provider) { urls.append(url) }
+                }
+                model.add(urls)
+            }
+            return true
+        }
+        .focusedSceneValue(\.imageActions, ImageActions(
+            add: { model.chooseImages() },
+            canAdd: !model.isExporting
+        ))
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 0) {
+            BrandIcon(size: 84).padding(.bottom, 24)
+            Text("图片压缩与转换").font(.system(size: 27, weight: .semibold))
             Text("本地处理 · 多格式输出 · 保留原文件")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
+            Button("选择图片…") { model.chooseImages() }
+                .buttonStyle(MonochromeButtonStyle())
+                .controlSize(.large).padding(.top, 30)
+            Text("或将图片拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
+            Text("JPG · JPEG · PNG · WebP · HEIC")
+                .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.background)
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 10) {
+                BrandIcon(size: 30)
+                Text("IMGX").font(.system(size: 18, weight: .semibold))
+                Spacer()
+                Text("\(model.items.count) 张").foregroundStyle(.secondary).font(.caption)
+            }
+            Button { model.chooseImages() } label: {
+                Label("添加图片…", systemImage: "plus").frame(maxWidth: .infinity)
+            }
+            .controlSize(.large).disabled(model.isExporting)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 6) {
+                        ForEach(model.items) { item in
+                            Button { model.selectedID = item.id } label: {
+                                fileCard(item)
+                            }
+                            .buttonStyle(.plain).id(item.id)
+                            .accessibilityLabel("\(item.url.lastPathComponent)，\(item.status.label)")
+                            .accessibilityAddTraits(item.id == model.selectedID ? .isSelected : [])
+                        }
+                    }
+                }
+                .scrollIndicators(.hidden)
+                .focusable()
+                .onKeyPress(.upArrow) { model.moveSelection(-1); return .handled }
+                .onKeyPress(.downArrow) { model.moveSelection(1); return .handled }
+                .onDeleteCommand { model.removeSelected() }
+                .onChange(of: model.selectedID) { _, id in
+                    if let id { proxy.scrollTo(id) }
+                }
+            }
+            HStack {
+                Button("移除选中", systemImage: "minus.circle") { model.removeSelected() }
+                    .labelStyle(.iconOnly).help("移除选中图片")
+                Spacer()
+                Button("清空列表") { model.clear() }.font(.caption)
+            }
+            .buttonStyle(.borderless).disabled(model.isExporting)
+        }
+        .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 16)
+    }
+
+    private func fileCard(_ item: ImageItem) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                if let thumbnail = item.thumbnail { Image(nsImage: thumbnail).resizable().scaledToFit() }
+                else { Image(systemName: "photo").foregroundStyle(.secondary) }
+            }
+            .frame(width: 44, height: 44)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.url.lastPathComponent).font(.system(size: 12, weight: .medium))
+                    .lineLimit(1).truncationMode(.middle).help(item.url.lastPathComponent)
+                Text(byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(item.status.label).font(.system(size: 10)).lineLimit(1)
+                    .foregroundStyle(item.status.isFailure ? Color.orange : Color.secondary)
+                    .help(item.status.label)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(item.id == model.selectedID ? Color.primary.opacity(0.09) : Color.clear,
+                    in: RoundedRectangle(cornerRadius: 10))
+        .contentShape(Rectangle())
+    }
+
+    private var dropOverlay: some View {
+        ZStack {
+            if reduceTransparency { RoundedRectangle(cornerRadius: 20).fill(Color(nsColor: .windowBackgroundColor)) }
+            else { RoundedRectangle(cornerRadius: 20).fill(.regularMaterial) }
+            RoundedRectangle(cornerRadius: 20).strokeBorder(.primary.opacity(0.3), style: StrokeStyle(lineWidth: 2, dash: [8]))
+            VStack(spacing: 16) {
+                Image(systemName: "square.and.arrow.down").font(.system(size: 40))
+                Text("松开以添加图片").font(.title2.weight(.semibold))
+                Text("JPG · JPEG · PNG · WebP · HEIC").foregroundStyle(.secondary)
+                Text("本地处理，保留原文件").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(16).allowsHitTesting(false)
+    }
+
+    @ViewBuilder private var toast: some View {
+        if let message = model.toast {
+            HStack(spacing: 12) {
+                Image(systemName: message.kind == .previewError ? "exclamationmark.triangle" : "info.circle")
+                Text(message.text).font(.system(size: 12)).textSelection(.enabled)
+                Button("关闭提示", systemImage: "xmark") { model.dismissToast() }
+                    .labelStyle(.iconOnly).buttonStyle(.borderless)
+            }
+            .padding(16).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator.opacity(0.5)))
+            .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
+            .frame(maxWidth: 680)
+        }
+    }
+}
+
+struct BrandIcon: View {
+    let size: CGFloat
+    var body: some View {
+        Image(nsImage: NSImage(systemSymbolName: "inset.left.half.square.dashed.micro", accessibilityDescription: nil)
+              ?? NSImage(systemSymbolName: "inset.left.half.square", accessibilityDescription: nil)
+              ?? NSImage(systemSymbolName: "square.lefthalf.filled", accessibilityDescription: nil)!)
+            .resizable().scaledToFit()
+            .frame(width: size * 0.54, height: size * 0.54)
+            .foregroundStyle(Color(white: 0.18))
+            .frame(width: size, height: size)
+            .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: size * 0.23))
+            .overlay(RoundedRectangle(cornerRadius: size * 0.23).stroke(.black.opacity(0.06)))
+            .shadow(color: .black.opacity(0.1), radius: size * 0.08, y: size * 0.04)
+            .accessibilityHidden(true)
+    }
+}
+
+@MainActor private func droppedURL(_ provider: NSItemProvider) async -> URL? {
+    await withCheckedContinuation { continuation in
+        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+            if let url = item as? URL { continuation.resume(returning: url) }
+            else if let data = item as? Data { continuation.resume(returning: URL(dataRepresentation: data, relativeTo: nil)) }
+            else { continuation.resume(returning: nil) }
+        }
+    }
+}
+
+struct ImageActions {
+    var add: () -> Void
+    var canAdd: Bool
+}
+
+struct ImageActionsKey: FocusedValueKey { typealias Value = ImageActions }
+extension FocusedValues {
+    var imageActions: ImageActions? {
+        get { self[ImageActionsKey.self] }
+        set { self[ImageActionsKey.self] = newValue }
+    }
+}
+
+struct ImageCommands: Commands {
+    @FocusedValue(\.imageActions) private var actions
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("添加图片…") { actions?.add() }
+                .keyboardShortcut("o").disabled(actions?.canAdd != true)
+        }
+    }
+}
+
+struct MonochromeButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .medium))
+            .padding(.horizontal, 20).padding(.vertical, 10)
+            .foregroundStyle(scheme == .dark ? Color.black : Color.white)
+            .background(scheme == .dark ? Color.white : Color(white: 0.16), in: RoundedRectangle(cornerRadius: 8))
+            .opacity(!enabled ? 0.35 : configuration.isPressed ? 0.75 : 1)
     }
 }
