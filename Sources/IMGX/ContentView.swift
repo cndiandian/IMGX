@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var dropTargeted = false
     @State private var advanced = false
     @State private var resetCanvas = UUID()
+    @State private var comparisonMode: ComparisonMode = .slider
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
@@ -47,7 +48,9 @@ struct ContentView: View {
         }
         .focusedSceneValue(\.imageActions, ImageActions(
             add: { model.chooseImages() },
-            canAdd: !model.isExporting
+            canAdd: !model.isExporting,
+            reset: { resetCanvas = UUID() },
+            hasImages: !model.items.isEmpty
         ))
     }
 
@@ -70,21 +73,37 @@ struct ContentView: View {
                 .help("原图 \(preview.original.width)×\(preview.original.height) px → 输出 \(preview.decoded.width)×\(preview.decoded.height) px")
             } else if model.previewLoading { ProgressView().controlSize(.small); Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
             Spacer(minLength: 0)
+            Picker("对比方式", selection: $comparisonMode) {
+                ForEach(ComparisonMode.allCases) { Text($0.rawValue).tag($0) }
+            }.pickerStyle(.segmented).labelsHidden().tint(.gray).frame(width: 116)
+            Button("适应窗口") { resetCanvas = UUID() }.font(.system(size: 12))
         }
         .padding(.horizontal, 20).frame(height: 54)
     }
 
     private var previewCanvas: some View {
         ZStack {
-            Color(nsColor: .underPageBackgroundColor)
-            if let result = model.preview {
-                Image(decorative: result.decoded, scale: 1).resizable().scaledToFit().padding(32)
-            } else if model.previewLoading { ProgressView("正在编码…") }
-            else { ContentUnavailableView("无法生成预览", systemImage: "exclamationmark.triangle", description: Text("检查图片或调整参数后重试")) }
+            ComparisonCanvas(result: model.preview, imageID: model.selectedID, mode: comparisonMode,
+                             resetID: resetCanvas, remove: { model.removeSelected() })
+            if model.previewLoading { ProgressView("正在编码…").padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) }
+            else if model.preview == nil { ContentUnavailableView("无法生成预览", systemImage: "exclamationmark.triangle", description: Text("检查图片或调整参数后重试")) }
+            if model.preview != nil {
+                VStack {
+                    HStack {
+                        previewLabel("原图")
+                        Spacer()
+                        previewLabel("转换结果")
+                    }
+                    Spacer()
+                }.padding(16).allowsHitTesting(false)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .contentShape(Rectangle())
-        .onTapGesture { NSApp.keyWindow?.makeFirstResponder(nil) }
+    }
+
+    private func previewLabel(_ title: String) -> some View {
+        Text(title).font(.system(size: 11, weight: .medium)).padding(.horizontal, 10).padding(.vertical, 6)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 7))
     }
 
     private var settingsBar: some View {
@@ -94,7 +113,7 @@ struct ContentView: View {
             }.frame(width: 130)
             HStack(spacing: 8) {
                 Text("质量").foregroundStyle(.secondary)
-                Slider(value: $model.settings.quality, in: 1...100, step: 1)
+                Slider(value: $model.settings.quality, in: 1...100, step: 1).tint(.primary)
                     .disabled(!model.settings.usesQuality).frame(minWidth: 60, maxWidth: 110)
                     .accessibilityLabel("压缩质量")
                 Text(model.settings.usesQuality ? "\(Int(model.settings.quality))" : "无损")
@@ -285,6 +304,8 @@ struct BrandIcon: View {
 struct ImageActions {
     var add: () -> Void
     var canAdd: Bool
+    var reset: () -> Void
+    var hasImages: Bool
 }
 
 struct ImageActionsKey: FocusedValueKey { typealias Value = ImageActions }
@@ -301,6 +322,10 @@ struct ImageCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("添加图片…") { actions?.add() }
                 .keyboardShortcut("o").disabled(actions?.canAdd != true)
+        }
+        CommandGroup(after: .toolbar) {
+            Button("适应窗口") { actions?.reset() }
+                .keyboardShortcut("0").disabled(actions?.hasImages != true)
         }
     }
 }
