@@ -1,0 +1,5 @@
+module CWebP {
+    header "../../Vendor/WebP/include/webp/encode.h"
+    header "../../Vendor/WebP/include/webp/decode.h"
+    export *
+}
