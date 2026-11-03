@@ -105,3 +105,16 @@ func rgba(_ image: CGImage, x: Int, y: Int) throws -> [UInt8] {
     #expect(try ImageCodec.convert(url: url, settings: ConversionSettings()).decoded.height == 40)
     #expect(throws: (any Error).self) { try ImageCodec.decode(Data("broken".utf8)) }
 }
+
+@Test func orientationIsAppliedBeforeSizing() throws {
+    let data = NSMutableData()
+    let destination = try #require(CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil))
+    CGImageDestinationAddImage(destination, try fixture(), [kCGImagePropertyOrientation: 6] as CFDictionary)
+    #expect(CGImageDestinationFinalize(destination))
+    let decoded = try ImageCodec.decode(data as Data)
+    #expect(decoded.width == 40 && decoded.height == 80)
+    var settings = ConversionSettings()
+    settings.size = .half
+    let output = try ImageCodec.convert(image: decoded, settings: settings)
+    #expect(output.decoded.width == 20 && output.decoded.height == 40)
+}

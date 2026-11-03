@@ -2,6 +2,13 @@ import SwiftUI
 
 @main
 struct IMGXApp: App {
+    init() {
+        #if DEBUG
+        if let appearance = ProcessInfo.processInfo.environment["IMGX_DEV_APPEARANCE"] {
+            NSApplication.shared.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
+        }
+        #endif
+    }
     var body: some Scene {
         WindowGroup("IMGX") {
             ContentView()

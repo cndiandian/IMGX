@@ -1,4 +1,5 @@
 import Testing
+import CoreGraphics
 import Foundation
 @testable import IMGX
 
@@ -39,4 +40,28 @@ import Foundation
     #expect(model.toast == nil)
     model.clear()
     #expect(model.preview == nil && !model.previewLoading)
+}
+
+@MainActor @Test func switchingImageRelinksFromLastEditedDirection() async throws {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: dir) }
+    var png = ConversionSettings()
+    png.format = .png
+    let landscape = dir.appendingPathComponent("landscape.png")
+    try ImageCodec.convert(image: fixture(), settings: png).data.write(to: landscape)
+    let context = try #require(CGContext(data: nil, width: 40, height: 80, bitsPerComponent: 8,
+                                        bytesPerRow: 160, space: ImageCodec.colorSpace, bitmapInfo: ImageCodec.bitmapInfo))
+    let portrait = dir.appendingPathComponent("portrait.png")
+    try ImageCodec.convert(image: #require(context.makeImage()), settings: png).data.write(to: portrait)
+    let model = AppModel()
+    model.add([landscape, portrait])
+    try await waitForPreview(model)
+    model.editDimension("60", width: false)
+    try await waitForPreview(model)
+    #expect(model.settings.width == "120")
+    model.selectedID = model.items[1].id
+    try await waitForPreview(model)
+    #expect(model.settings.height == "60" && model.settings.width == "30")
+    #expect(model.preview?.decoded.width == 30 && model.preview?.decoded.height == 60)
 }

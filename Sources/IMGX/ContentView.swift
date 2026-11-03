@@ -5,8 +5,11 @@ struct ContentView: View {
     @State private var model = AppModel()
     @State private var dropTargeted = false
     @State private var advanced = false
+    @FocusState private var sidebarFocused: Bool
+    @State private var dimensionFocusGroup = DimensionFocusGroup()
     @State private var resetCanvas = UUID()
     @State private var comparisonMode: ComparisonMode = .slider
+    @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
@@ -30,11 +33,13 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .background(KeyboardBridge(isEditing: advanced, remove: { model.removeSelected() }).frame(width: 0, height: 0))
         .blur(radius: dropTargeted && !model.isExporting ? 2 : 0)
         .overlay {
             if dropTargeted && !model.isExporting { dropOverlay }
         }
         .overlay(alignment: .bottom) { toast.padding(24) }
+        .onDeleteCommand { if !advanced { model.removeSelected() } }
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $dropTargeted) { providers in
             guard !model.isExporting else { return false }
             Task {
@@ -45,6 +50,16 @@ struct ContentView: View {
                 model.add(urls)
             }
             return true
+        }
+        .task {
+            #if DEBUG
+            if ProcessInfo.processInfo.environment["IMGX_DEV_SMALL_WINDOW"] == "1" {
+                NSApp.windows.first(where: { $0.canBecomeMain })?.setContentSize(NSSize(width: 1000, height: 700))
+            }
+            if let input = ProcessInfo.processInfo.environment["IMGX_DEV_INPUTS"] {
+                model.add(input.split(separator: "\n").map { URL(fileURLWithPath: String($0)) })
+            }
+            #endif
         }
         .focusedSceneValue(\.imageActions, ImageActions(
             add: { model.chooseImages() },
@@ -75,9 +90,7 @@ struct ContentView: View {
                 .help("原图 \(preview.original.width)×\(preview.original.height) px → 输出 \(preview.decoded.width)×\(preview.decoded.height) px")
             } else if model.previewLoading { ProgressView().controlSize(.small); Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
             Spacer(minLength: 0)
-            Picker("对比方式", selection: $comparisonMode) {
-                ForEach(ComparisonMode.allCases) { Text($0.rawValue).tag($0) }
-            }.pickerStyle(.segmented).labelsHidden().tint(.gray).frame(width: 116)
+            ComparisonPicker(selection: $comparisonMode).frame(width: 108, height: 26)
             Button("适应窗口") { resetCanvas = UUID() }.font(.system(size: 12))
         }
         .padding(.horizontal, 20).frame(height: 54)
@@ -148,11 +161,11 @@ struct ContentView: View {
             Divider()
             Text("自定义尺寸").fontWeight(.medium)
             HStack(spacing: 10) {
-                TextField("宽度", text: Binding(get: { model.settings.width }, set: { model.editDimension($0, width: true) }))
-                    .accessibilityLabel("自定义宽度")
+                DimensionField(title: "宽度", focusGroup: dimensionFocusGroup, text: Binding(get: { model.settings.width }, set: { model.editDimension($0, width: true) }))
+                    .frame(height: 24)
                 Text("×").foregroundStyle(.secondary)
-                TextField("高度", text: Binding(get: { model.settings.height }, set: { model.editDimension($0, width: false) }))
-                    .accessibilityLabel("自定义高度")
+                DimensionField(title: "高度", focusGroup: dimensionFocusGroup, text: Binding(get: { model.settings.height }, set: { model.editDimension($0, width: false) }))
+                    .frame(height: 24)
                 Text("px").foregroundStyle(.secondary)
             }.textFieldStyle(.roundedBorder)
             Text("宽高按当前图片等比联动；批量处理保持各图比例。\n正整数 1～16383，均留空时保留原尺寸。")
@@ -194,7 +207,7 @@ struct ContentView: View {
                 ScrollView {
                     LazyVStack(spacing: 6) {
                         ForEach(model.items) { item in
-                            Button { model.selectedID = item.id } label: {
+                            Button { model.selectedID = item.id; sidebarFocused = true } label: {
                                 fileCard(item)
                             }
                             .buttonStyle(.plain).id(item.id)
@@ -205,9 +218,10 @@ struct ContentView: View {
                 }
                 .scrollIndicators(.hidden)
                 .focusable()
+                .focused($sidebarFocused)
                 .onKeyPress(.upArrow) { model.moveSelection(-1); return .handled }
                 .onKeyPress(.downArrow) { model.moveSelection(1); return .handled }
-                .onDeleteCommand { model.removeSelected() }
+                .onDeleteCommand { if !advanced { model.removeSelected() } }
                 .onChange(of: model.selectedID) { _, id in
                     if let id { proxy.scrollTo(id) }
                 }
@@ -245,6 +259,11 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(item.id == model.selectedID ? Color.primary.opacity(0.09) : Color.clear,
                     in: RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            if contrast == .increased && item.id == model.selectedID {
+                RoundedRectangle(cornerRadius: 10).stroke(.primary, lineWidth: 1)
+            }
+        }
         .contentShape(Rectangle())
     }
 

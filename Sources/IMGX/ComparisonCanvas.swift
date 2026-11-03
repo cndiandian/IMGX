@@ -71,7 +71,7 @@ final class ComparisonView: NSView {
         let base = dark ? 0.16 : 0.91
         NSColor(white: base, alpha: 1).setFill()
         bounds.fill()
-        NSColor(white: base + (dark ? 0.045 : -0.055), alpha: 1).setFill()
+        NSColor(white: base + (NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast ? (dark ? 0.12 : -0.12) : (dark ? 0.045 : -0.055)), alpha: 1).setFill()
         let tile: CGFloat = 12
         for row in 0...Int(bounds.height / tile) {
             for col in 0...Int(bounds.width / tile) where (row + col) % 2 == 0 {
@@ -134,6 +134,11 @@ final class ComparisonView: NSView {
         context.scaleBy(x: 1, y: -1)
         context.draw(image, in: CGRect(x: 0, y: 0, width: rect.width, height: rect.height))
         context.restoreGState()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
     }
 
     override func resetCursorRects() {

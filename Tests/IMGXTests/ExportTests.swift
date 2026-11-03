@@ -51,3 +51,27 @@ import Foundation
     let contents = try urls.map { try Data(contentsOf: $0) }
     #expect(Set(contents).count == 10)
 }
+
+@MainActor @Test func exportRetainsParameterSnapshot() async throws {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: dir) }
+    var settings = ConversionSettings()
+    settings.format = .png
+    let data = try ImageCodec.convert(image: fixture(), settings: settings).data
+    let urls = (0..<4).map { dir.appendingPathComponent("input-\($0).png") }
+    for url in urls { try data.write(to: url) }
+    let model = AppModel()
+    model.add(urls)
+    model.settings = settings
+    let task = Task { await model.export(to: dir) }
+    await Task.yield()
+    // Change the live settings after the batch has captured its snapshot.
+    while !model.isExporting && !task.isCancelled { await Task.yield(); if model.completedCount > 0 { break } }
+    model.settings.format = .jpeg
+    await task.value
+    for index in 0..<4 {
+        #expect(FileManager.default.fileExists(atPath: dir.appendingPathComponent("input-\(index)-1.png").path))
+        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("input-\(index).jpg").path))
+    }
+}
