@@ -276,7 +276,7 @@ struct ContentView: View {
                             Button { model.selectedID = item.id; sidebarFocused = true } label: {
                                 fileCard(item)
                             }
-                            .buttonStyle(.plain).id(item.id)
+                            .buttonStyle(.plain).focusEffectDisabled().id(item.id)
                             .accessibilityLabel("\(item.url.lastPathComponent)，\(byteString(item.originalBytes))，\(item.status.label)")
                             .accessibilityAddTraits(item.id == model.selectedID ? .isSelected : [])
                         }
@@ -285,6 +285,7 @@ struct ContentView: View {
                 .scrollIndicators(.hidden)
                 .focusable()
                 .focused($sidebarFocused)
+                .focusEffectDisabled()
                 .onKeyPress(.upArrow) { model.moveSelection(-1); return .handled }
                 .onKeyPress(.downArrow) { model.moveSelection(1); return .handled }
                 .onDeleteCommand { if !advanced { model.removeSelected() } }

@@ -50,6 +50,7 @@ final class ComparisonView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        focusRingType = .none
         setAccessibilityElement(true)
         setAccessibilityRole(.image)
         setAccessibilityLabel("原图与转换结果对比画布")
@@ -120,12 +121,6 @@ final class ComparisonView: NSView {
         NSColor.windowBackgroundColor.withAlphaComponent(0.92).setFill()
         NSBezierPath(roundedRect: rect, xRadius: 8, yRadius: 8).fill()
         (badge as NSString).draw(at: NSPoint(x: rect.minX + 12, y: rect.minY + 7), withAttributes: attrs)
-        if window?.firstResponder === self {
-            NSColor.keyboardFocusIndicatorColor.setStroke()
-            let path = NSBezierPath(rect: bounds.insetBy(dx: 2, dy: 2))
-            path.lineWidth = 2
-            path.stroke()
-        }
     }
 
     @objc func accessibleZoomIn() -> Bool {

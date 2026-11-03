@@ -12,6 +12,7 @@ struct PrimaryActionButton: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(action: action) }
     func makeNSView(context: Context) -> NSButton {
         let button = NSButton(title: title, target: context.coordinator, action: #selector(Coordinator.activate))
+        button.focusRingType = .none
         button.bezelStyle = .rounded
         button.controlSize = .large
         button.font = .systemFont(ofSize: 13, weight: .medium)
