@@ -1,16 +1,107 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-configuration="${1:-release}"
+
+usage() {
+    cat <<'HELP'
+用法：bash Scripts/build-app.sh [release|debug] [选项]
+
+默认：Release 构建及本地临时签名。
+  --sign IDENTITY       使用 Developer ID Application 证书名称或 SHA-1 签名
+  --notarize            提交 Apple 公证，装订票据并生成分发 ZIP（仅 Release）
+  --profile NAME        notarytool 钥匙串凭据名称
+  --timeout DURATION    等待公证的时限，默认 30m
+  -h, --help            显示帮助
+
+环境变量：IMGX_SIGN_IDENTITY、IMGX_NOTARY_PROFILE 可替代相应选项。
+示例：
+  bash Scripts/build-app.sh debug
+  bash Scripts/build-app.sh --sign 'Developer ID Application: 姓名 (TEAMID)'
+  bash Scripts/build-app.sh --sign '证书名称或 SHA-1' --notarize --profile IMGX
+HELP
+}
+fail() { echo "错误：$*" >&2; exit 1; }
+configuration=release
+identity="${IMGX_SIGN_IDENTITY:--}"
+profile="${IMGX_NOTARY_PROFILE:-}"
+notarize=false
+timeout=30m
+configuration_set=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        release|debug)
+            [[ "$configuration_set" == false ]] || fail "只能指定一个构建配置。"
+            configuration="$1"; configuration_set=true; shift ;;
+        --sign|--profile|--timeout)
+            [[ $# -ge 2 && -n "$2" && "$2" != --* ]] || fail "$1 缺少参数。"
+            case "$1" in
+                --sign) identity="$2" ;;
+                --profile) profile="$2" ;;
+                --timeout) timeout="$2" ;;
+            esac
+            shift 2 ;;
+        --notarize) notarize=true; shift ;;
+        -h|--help) usage; exit 0 ;;
+        *) fail "未知参数：$1；使用 --help 查看用法。" ;;
+    esac
+done
+[[ -n "$identity" ]] || fail "签名身份不能为空。"
+[[ "$timeout" =~ ^[1-9][0-9]*[smh]?$ ]] || fail "等待时限应为正整数及可选单位 s、m、h。"
+if [[ "$notarize" == true ]]; then
+    [[ "$configuration" == release ]] || fail "公证必须使用 Release 构建。"
+    [[ "$identity" != - ]] || fail "公证需要 --sign 指定 Developer ID Application 证书。"
+    [[ -n "$profile" ]] || fail "公证需要 --profile 指定钥匙串凭据。"
+    xcrun --find notarytool >/dev/null
+    xcrun --find stapler >/dev/null
+fi
+
 swift build -c "$configuration"
 binary_dir="$(swift build -c "$configuration" --show-bin-path)"
 app="dist/IMGX.app"
+# 每次重新创建应用，避免旧签名、公证票据及资源混入新构建。
+rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 swift Scripts/generate-icon.swift dist/AppIcon.iconset
 iconutil -c icns dist/AppIcon.iconset -o "$app/Contents/Resources/IMGX.icns"
 cp Vendor/WebP/LICENSE "$app/Contents/Resources/WebP-LICENSE.txt"
 cp "$binary_dir/IMGX" "$app/Contents/MacOS/IMGX"
 cp Scripts/Info.plist "$app/Contents/Info.plist"
-codesign --force --sign - "$app"
-codesign --verify --strict "$app"
+plutil -lint "$app/Contents/Info.plist"
+if [[ "$identity" == - ]]; then
+    codesign --force --sign - "$app"
+else
+    codesign --force --sign "$identity" --options runtime --timestamp "$app"
+fi
+codesign --verify --deep --strict "$app"
 echo "应用已生成：$PWD/$app"
+
+if [[ "$notarize" == true ]]; then
+    # 独立目录保留每次提交的结果，失败时不会将未公证 ZIP 当成分发产物。
+    submission_dir="$(mktemp -d "$PWD/dist/notarization.XXXXXX")"
+    upload_zip="$submission_dir/IMGX-upload.zip"
+    result="$submission_dir/result.json"
+    ditto -c -k --keepParent "$app" "$upload_zip"
+    echo "提交 Apple 公证，结果目录：$submission_dir"
+    submit_exit=0
+    xcrun notarytool submit "$upload_zip" --keychain-profile "$profile" \
+        --wait --timeout "$timeout" --output-format json > "$result" || submit_exit=$?
+    submission_id="$(plutil -extract id raw -o - "$result" 2>/dev/null || true)"
+    status="$(plutil -extract status raw -o - "$result" 2>/dev/null || true)"
+    if [[ -n "$submission_id" ]]; then
+        echo "公证提交 ID：${submission_id}；状态：${status:-未知}"
+        if ! xcrun notarytool log "$submission_id" --keychain-profile "$profile" "$submission_dir/log.json"; then
+            echo "未能下载日志，可稍后使用 notarytool log 和上述提交 ID 重试。" >&2
+        fi
+    fi
+    if [[ "$submit_exit" != 0 || "$status" != Accepted ]]; then
+        echo "可通过 xcrun notarytool info / wait 查询或继续等待上述提交。" >&2
+        fail "公证未确认通过，请检查 $result 和日志。Apple 端可能仍在处理。"
+    fi
+    xcrun stapler staple "$app"
+    xcrun stapler validate "$app"
+    codesign --verify --deep --strict "$app"
+    spctl --assess --type execute --verbose=2 "$app"
+    # 重新压缩已经装订票据的应用，供离线校验和分发。
+    ditto -c -k --keepParent "$app" "$submission_dir/IMGX.zip"
+    echo "签名、公证和装订检查通过，分发文件：$submission_dir/IMGX.zip"
+fi
