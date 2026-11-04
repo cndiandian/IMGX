@@ -282,8 +282,8 @@ struct ContentView: View {
                 Spacer()
                 Text("\(model.items.count) 张").foregroundStyle(.secondary).font(.caption)
             }
-            .padding(.leading, 62)
-            .frame(height: 54)
+            .frame(height: 40)
+            .padding(.top, 36)
             .background { windowDragArea }
             Button { model.chooseImages() } label: {
                 Label("添加图片", systemImage: "plus").frame(maxWidth: .infinity)
