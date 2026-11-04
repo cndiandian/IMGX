@@ -20,6 +20,8 @@ brew install --cask cndiandian/tap/imgx
 - 画布滚轮/捏合缩放、拖动平移、双击复位；获得焦点后支持方向键、`+`/`-`、`0`、`[`/`]`。
 - 100% 表示适应窗口的基准比例，不是像素一一对应。
 
+在“IMGX → 关于 IMGX”中查看当前版本、打开项目主页或检测更新。发现 GitHub 新的正式版本后，会自动下载并校验 DMG，再打开安装镜像；将 IMGX 拖入 Applications 完成更新。安装镜像保存在“下载/IMGX”的独立目录中。检测和下载时按钮切换为“取消”。
+
 ## 开发与验证
 
 需要 Xcode 26+ 与 Swift 6.2+。在项目目录执行：
@@ -88,7 +90,7 @@ Release 成功后自动同步 `cndiandian/homebrew-tap` 中的 IMGX Cask，使�
 
 ## 验收与边界
 
-当前 12 项自动化测试覆盖编码、透明通道、EXIF 方向、尺寸规则、导入管理、异步预览、导出快照、失败继续、排他文件保护和画布无障碍操作。Apple 人机交互检查见 [HIG 检查报告](docs/hig-audit/REPORT.md)。窗口实操及未覆盖事项见 [开发与验收记录](docs/IMPLEMENTATION.md)。
+当前 18 项 Swift 自动化测试覆盖编码、透明通道、EXIF 方向、尺寸规则、导入管理、异步预览、导出快照、失败继续、排他文件保护、画布无障碍操作，以及更新版本比较、Release 来源、校验文件、下载完整性和取消行为。Apple 人机交互检查见 [HIG 检查报告](docs/hig-audit/REPORT.md)。窗口实操及未覆盖事项见 [开发与验收记录](docs/IMPLEMENTATION.md)。
 
 默认构建使用临时签名，仅面向本地开发。已完成本机 Developer ID 正式签名、应用与 DMG 的真实 Apple 公证、票据装订及 Gatekeeper 验证；尚未上架或在另一台 Mac 上验收。不支持动图保留，不承诺 EXIF、ICC、HDR 等信息完整保留。列表和设置不跨启动保存。
 

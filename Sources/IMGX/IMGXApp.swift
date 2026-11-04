@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct IMGXApp: App {
+    @State private var updater = AppUpdateModel()
     init() {
         #if DEBUG
         if let appearance = ProcessInfo.processInfo.environment["IMGX_DEV_APPEARANCE"] {
@@ -17,6 +18,13 @@ struct IMGXApp: App {
         }
         .defaultSize(width: 1200, height: 800)
         .windowStyle(.hiddenTitleBar)
-        .commands { ImageCommands() }
+        .commands { ImageCommands(); AppInfoCommands() }
+
+        Window("关于 IMGX", id: "about") {
+            AboutView(updater: updater)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+        .restorationBehavior(.disabled)
     }
 }
