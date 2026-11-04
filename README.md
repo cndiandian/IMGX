@@ -71,6 +71,10 @@ xcrun notarytool log '提交 ID' --keychain-profile IMGX '日志文件.json'
 
 发布脚本的离线流程测试：`python3 Scripts/test-build-app.py`。测试模拟签名及 Apple 工具，覆盖默认临时签名、公证通过、API Key 与 DMG、版本号、公证拒绝/超时、装订失败和参数校验，不会读取凭据或上传应用。
 
+## GitHub 自动发布
+
+推送 `v0.1.0` 格式的 tag 后，GitHub Actions 自动运行测试、编译、正式签名、公证并创建带 ZIP / DMG 和校验文件的 Release。首次需在仓库配置五项 Secrets，详细步骤见 [GitHub 发布配置指南](docs/GITHUB_RELEASE.md)。
+
 ## 验收与边界
 
 当前 12 项自动化测试覆盖编码、透明通道、EXIF 方向、尺寸规则、导入管理、异步预览、导出快照、失败继续、排他文件保护和画布无障碍操作。Apple 人机交互检查见 [HIG 检查报告](docs/hig-audit/REPORT.md)。窗口实操及未覆盖事项见 [开发与验收记录](docs/IMPLEMENTATION.md)。

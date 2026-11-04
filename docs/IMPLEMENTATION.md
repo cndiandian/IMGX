@@ -168,3 +168,13 @@
 - 应用公证 ID：`dc3b51c0-2e03-4a81-9faf-bd91ceba3890`；DMG 公证 ID：`df756114-61d4-4a8a-8034-2e0a8cb2c9c7`。两者均为 Accepted，日志 issues 为 null。
 - 应用及 DMG 的公证票据装订、票据验证、签名检查和 Gatekeeper 检查全部通过（Notarized Developer ID）；ZIP 和 DMG 的 SHA-256 校验通过。产物位于 `dist/notarization.PorlME/`，未发布 GitHub 或上传应用商店。
 - 未进行另一台 Mac 的安装、首次启动和离线 Gatekeeper 实操验收。
+
+## GitHub tag 自动发布工作流（2026-11-04）
+
+- 新增 `.github/workflows/release.yml`，推送 `v主版本.次版本.修订版本` tag 后，在 macOS 26 arm64 runner 运行回归测试及正式发布脚本。
+- 从五项 Repository Secrets 导入临时 Developer ID 钥匙串和 App Store Connect API Key，自动清理签名材料。复用已完成真实公证验收的本地脚本生成 ZIP、DMG 和 SHA-256。
+- 构建 job 仅有代码读取权限；独立发布 job 校验分发文件后创建 GitHub Release。GitHub 官方 Actions 固定到已核实的提交 SHA；失败时保留公证诊断日志。
+- 新增 `docs/GITHUB_RELEASE.md`，包含实际仓库地址、P12 导出、五项 Secret 配置、tag 推送、下载和错误排查步骤。
+- actionlint 1.7.12 校验、YAML 解析、9 个内嵌 Shell 步骤的 `bash -n` 及 `git diff --check` 通过。远程仓库当前无分支或 tag；没有将本机 `.release.env`、P12 或 P8 文件加入版本控制。
+- 云端 Actions 首次执行尚未验收，需用户配置五项 Secrets 后推送 tag。当前不创建 tag，不触发未配置凭据的发布。
+- 按用户要求将 origin 改为 `git@github.com:cndiandian/IMGX.git`；默认 SSH 身份为 xshwy，无仓库写权限，已验证本机现有 cndiandian Key 并通过仓库级 `core.sshCommand` 选择该身份，不改动全局 SSH 配置。

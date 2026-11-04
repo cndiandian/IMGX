@@ -1,0 +1,189 @@
+name: 发布 IMGX
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: 编译、签名与公证
+    runs-on: macos-26
+    timeout-minutes: 100
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: 检出 tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: 验证版本与环境
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo '::error::tag 必须为 v主版本.次版本.修订版本，例如 v0.1.0'
+            exit 1
+          }
+          [[ "$(uname -m)" == arm64 ]] || {
+            echo '::error::当前 WebP 静态库要求 Apple Silicon runner'
+            exit 1
+          }
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+          xcode-select -p
+          swift --version
+          xcrun --sdk macosx --show-sdk-version
+
+      - name: 检查发布凭据
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          for name in APPLE_CERTIFICATE_P12_BASE64 APPLE_CERTIFICATE_PASSWORD \
+            APP_STORE_CONNECT_API_KEY_BASE64 APP_STORE_CONNECT_API_KEY_ID APP_STORE_CONNECT_API_ISSUER_ID; do
+            [[ -n "${!name}" ]] || {
+              echo "::error::缺少 Repository Secret：$name；请参照 docs/GITHUB_RELEASE.md 配置"
+              exit 1
+            }
+          done
+
+      - name: 运行回归测试
+        run: |
+          set -euo pipefail
+          swift test
+          python3 Scripts/test-build-app.py
+
+      - name: 导入 Developer ID 证书
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          certificate_path="$RUNNER_TEMP/imgx-developer-id.p12"
+          keychain_path="$RUNNER_TEMP/imgx-signing.keychain-db"
+          keychain_password="$(uuidgen)"
+          echo "::add-mask::$keychain_password"
+          echo "IMGX_CI_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+          printf '%s' "$CERTIFICATE_BASE64" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$certificate_path" -P "$CERTIFICATE_PASSWORD" \
+            -f pkcs12 -k "$keychain_path" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path" >/dev/null
+          security list-keychains -d user -s "$keychain_path"
+          identity="$(security find-identity -v -p codesigning "$keychain_path" | awk '/"Developer ID Application:/ {print $2}')"
+          [[ "$identity" =~ ^[0-9A-Fa-f]{40}$ ]] || {
+            echo '::error::P12 必须包含一个有效的 Developer ID Application 证书及其私钥'
+            exit 1
+          }
+          echo "CODE_SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: 准备 App Store Connect API Key
+        env:
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_path="$RUNNER_TEMP/imgx-notary-key.p8"
+          printf '%s' "$API_KEY_BASE64" | base64 --decode > "$key_path"
+          echo "APP_STORE_CONNECT_API_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+
+      - name: 编译、签名、公证并打包
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: bash Scripts/release.sh
+
+      - name: 整理并校验发布文件
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          directories=(dist/notarization.*/)
+          [[ "${#directories[@]}" == 1 ]]
+          release_dir="${directories[0]}"
+          mkdir -p dist/release-assets
+          for extension in zip dmg; do
+            filename="IMGX-v${APP_VERSION}.${extension}"
+            (cd "$release_dir" && shasum -a 256 -c "$filename.sha256")
+            cp "$release_dir/$filename" "$release_dir/$filename.sha256" dist/release-assets/
+          done
+
+      - name: 保存发布产物
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: IMGX-v${{ steps.version.outputs.version }}
+          path: dist/release-assets/*
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: 保存公证诊断日志
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: notarization-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            dist/notarization.*/*-result.json
+            dist/notarization.*/*-log.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: 清理签名材料
+        if: ${{ always() }}
+        run: |
+          if [[ -n "${IMGX_CI_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$IMGX_CI_KEYCHAIN" || true
+          fi
+          rm -f "$RUNNER_TEMP/imgx-developer-id.p12" "$RUNNER_TEMP/imgx-notary-key.p8"
+
+  publish:
+    name: 创建 GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: 下载已验证的发布产物
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: IMGX-v${{ needs.build.outputs.version }}
+          path: release-assets
+
+      - name: 校验并发布 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          APP_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum -c "IMGX-v${APP_VERSION}.zip.sha256"
+          sha256sum -c "IMGX-v${APP_VERSION}.dmg.sha256"
+          gh release create "$RELEASE_TAG" \
+            "IMGX-v${APP_VERSION}.zip" "IMGX-v${APP_VERSION}.zip.sha256" \
+            "IMGX-v${APP_VERSION}.dmg" "IMGX-v${APP_VERSION}.dmg.sha256" \
+            --repo "$GH_REPO" --verify-tag --generate-notes --title "IMGX $RELEASE_TAG"
