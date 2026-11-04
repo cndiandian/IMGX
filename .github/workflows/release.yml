@@ -65,12 +65,7 @@ jobs:
           done
 
       - name: 运行回归测试
-        run: |
-          set -euo pipefail
-          swift test
-          python3 Scripts/test-build-app.py
-          python3 Scripts/test-homebrew-tap.py
-          python3 Scripts/test-publish-release.py
+        run: bash Scripts/check.sh
 
       - name: 导入 Developer ID 证书
         env:
