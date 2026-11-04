@@ -13,6 +13,7 @@ struct IMGXApp: App {
         WindowGroup("IMGX") {
             ContentView()
                 .frame(minWidth: 1000, minHeight: 700)
+                .ignoresSafeArea(.container, edges: .top)
         }
         .defaultSize(width: 1200, height: 800)
         .windowStyle(.hiddenTitleBar)

@@ -33,6 +33,11 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .background(Color(nsColor: .windowBackgroundColor))
+        .overlay(alignment: .top) {
+            if model.items.isEmpty {
+                windowDragArea.frame(height: 54)
+            }
+        }
         .background(KeyboardBridge(isEditing: advanced, remove: { model.removeSelected() }).frame(width: 0, height: 0))
         .blur(radius: dropTargeted && !model.isExporting ? 2 : 0)
         .overlay(alignment: .bottom) { toast.padding(24) }
@@ -114,6 +119,7 @@ struct ContentView: View {
             Button("适应窗口") { resetCanvas = UUID() }.font(.system(size: 12))
         }
         .padding(.horizontal, 20).frame(height: 54)
+        .background { windowDragArea }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("编码预览结果")
     }
@@ -272,11 +278,13 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                BrandIcon(size: 30)
                 Text("IMGX").font(.system(size: 18, weight: .semibold))
                 Spacer()
                 Text("\(model.items.count) 张").foregroundStyle(.secondary).font(.caption)
             }
+            .padding(.leading, 62)
+            .frame(height: 54)
+            .background { windowDragArea }
             Button { model.chooseImages() } label: {
                 Label("添加图片", systemImage: "plus").frame(maxWidth: .infinity)
             }
@@ -316,9 +324,16 @@ struct ContentView: View {
             }
             .buttonStyle(.borderless).disabled(model.isExporting)
         }
-        .padding(.horizontal, 16).padding(.top, 20).padding(.bottom, 16)
+        .padding(.horizontal, 16).padding(.bottom, 16)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("图片列表")
+    }
+
+    private var windowDragArea: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(WindowDragGesture())
+            .accessibilityHidden(true)
     }
 
     private func fileCard(_ item: ImageItem) -> some View {
