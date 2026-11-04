@@ -21,6 +21,8 @@ elif name == 'iconutil':
     pathlib.Path(args[args.index('-o') + 1]).touch()
 elif name == 'ditto':
     pathlib.Path(args[-1]).touch()
+elif name == 'hdiutil':
+    pathlib.Path(args[-1]).touch()
 elif name == 'xcrun':
     if args[0] == '--find':
         print('/mock/' + args[1])
@@ -51,14 +53,16 @@ class BuildScriptTests(unittest.TestCase):
         stub = self.bin / 'stub'
         stub.write_text(STUB)
         stub.chmod(0o755)
-        for name in ['swift', 'iconutil', 'codesign', 'ditto', 'xcrun', 'spctl']:
+        for name in ['swift', 'iconutil', 'codesign', 'ditto', 'xcrun', 'spctl', 'hdiutil', 'sleep']:
             (self.bin / name).symlink_to(stub)
         self.log = self.root / 'calls.jsonl'
 
     def run_build(self, args, **overrides):
         env = os.environ.copy()
-        env.pop('IMGX_SIGN_IDENTITY', None)
-        env.pop('IMGX_NOTARY_PROFILE', None)
+        for name in ['IMGX_SIGN_IDENTITY', 'IMGX_NOTARY_PROFILE', 'CODE_SIGN_IDENTITY',
+                     'APP_STORE_CONNECT_API_KEY_PATH', 'APP_STORE_CONNECT_API_KEY_ID',
+                     'APP_STORE_CONNECT_API_ISSUER_ID', 'APP_VERSION', 'BUILD_NUMBER']:
+            env.pop(name, None)
         env.update(PATH=f'{self.bin}:{env["PATH"]}', MOCK_BIN=str(self.bin),
                    MOCK_LOG=str(self.log), MOCK_STATUS='Accepted')
         env.update(overrides)
@@ -91,22 +95,48 @@ class BuildScriptTests(unittest.TestCase):
         self.assertLess(staple, validate)
         self.assertLess(validate, gatekeeper)
         self.assertEqual(calls[-1][0], 'ditto')
-        self.assertEqual(len(list(self.root.glob('dist/notarization.*/IMGX.zip'))), 1)
+        self.assertEqual(len(list(self.root.glob('dist/notarization.*/IMGX-v*.zip'))), 1)
+        self.assertEqual(len(list(self.root.glob('dist/notarization.*/IMGX-v*.zip.sha256'))), 1)
+
+    def test_api_key_and_dmg_release_with_version(self):
+        key = self.root / 'Test Key.p8'
+        key.write_text('test-only mock credential')
+        result = self.run_build(['--notarize', '--dmg'],
+                               CODE_SIGN_IDENTITY='Test', APP_VERSION='1.2.3', BUILD_NUMBER='42',
+                               APP_STORE_CONNECT_API_KEY_PATH=str(key),
+                               APP_STORE_CONNECT_API_KEY_ID='TESTKEY',
+                               APP_STORE_CONNECT_API_ISSUER_ID='test-issuer')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        submissions = [c for c in self.calls() if c[:3] == ['xcrun', 'notarytool', 'submit']]
+        self.assertEqual(len(submissions), 2)
+        for call in submissions:
+            self.assertIn(str(key), call)
+            self.assertIn('test-issuer', call)
+        self.assertEqual(len(list(self.root.glob('dist/notarization.*/IMGX-v1.2.3.dmg.sha256'))), 1)
+        import plistlib
+        info = plistlib.loads((self.root / 'dist/IMGX.app/Contents/Info.plist').read_bytes())
+        self.assertEqual(info['CFBundleShortVersionString'], '1.2.3')
+        self.assertEqual(info['CFBundleVersion'], '42')
+
+    def test_auth_modes_cannot_be_combined(self):
+        result = self.publish(APP_STORE_CONNECT_API_KEY_PATH='/test/key.p8')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.log.exists())
 
     def test_rejected_or_timeout_never_creates_distribution(self):
         for status, code in [('Invalid', '0'), ('In Progress', '69')]:
             with self.subTest(status=status):
                 result = self.publish(MOCK_STATUS=status, MOCK_SUBMIT_EXIT=code)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertFalse(list(self.root.glob('dist/notarization.*/IMGX.zip')))
+                self.assertFalse(list(self.root.glob('dist/notarization.*/IMGX-v*.zip')))
         self.assertFalse(any(c[:2] == ['xcrun', 'stapler'] for c in self.calls()))
 
     def test_stapling_failure_never_creates_distribution(self):
         self.assertNotEqual(self.publish(MOCK_STAPLE_EXIT='1').returncode, 0)
-        self.assertFalse(list(self.root.glob('dist/notarization.*/IMGX.zip')))
+        self.assertFalse(list(self.root.glob('dist/notarization.*/IMGX-v*.zip')))
 
     def test_invalid_options_fail_before_build(self):
-        for args in [['--notarize'], ['--sign'], ['--unknown'],
+        for args in [['--notarize'], ['--sign'], ['--unknown'], ['--dmg'],
                      ['debug', 'release'], ['--timeout', '0m'],
                      ['debug', '--sign', 'Test', '--notarize', '--profile', 'Test']]:
             with self.subTest(args=args):

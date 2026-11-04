@@ -53,9 +53,11 @@ bash Scripts/build-app.sh release \
   --notarize --profile IMGX
 ```
 
-`--sign` 也支持证书 SHA-1，以区分同名证书。可通过环境变量 `IMGX_SIGN_IDENTITY`、`IMGX_NOTARY_PROFILE` 提供默认值。没有签名配置时，原有命令继续使用本地临时签名；公证模式强制要求正式签名和 Release 构建。
+`--sign` 也支持证书 SHA-1，以区分同名证书。可通过环境变量 `IMGX_SIGN_IDENTITY`（或参考项目使用的 `CODE_SIGN_IDENTITY`）、`IMGX_NOTARY_PROFILE` 提供默认值。没有签名配置时，原有命令继续使用本地临时签名；公证模式强制要求正式签名和 Release 构建。
 
-签名后的应用位于 `dist/IMGX.app`。每次公证在 `dist/notarization.XXXXXX/` 中独立保存结果 `result.json` 和下载的日志 `log.json`；只有公证状态为 `Accepted` 且票据装订、签名、Gatekeeper 检查均通过后，才生成可分发的 **`IMGX.zip`**。`IMGX-upload.zip` 为提交给 Apple 的中间文件。
+签名后的应用位于 `dist/IMGX.app`。每次公证在 `dist/notarization.XXXXXX/` 中独立保存结果 `app-result.json` 和下载的日志 `app-log.json`；只有公证状态为 `Accepted` 且票据装订、签名、Gatekeeper 检查均通过后，才生成可分发的 **`IMGX-v0.1.0.zip`** 及 SHA-256 校验文件。`IMGX-upload.zip` 为提交给 Apple 的中间文件。
+
+参照 PodLilt 项目增加 `Scripts/release.sh`：支持同名 API Key 环境变量，额外构建、签名、公证并装订 DMG（含 Applications 快捷方式）。版本使用 `APP_VERSION` 和 `BUILD_NUMBER`，默认 `0.1.0` / `1`。具体操作见 [发布步骤](docs/RELEASING.md)。
 
 默认等待 30 分钟，可用 `--timeout 60m` 调整。超时或网络失败会返回失败状态，Apple 端可能仍继续处理；保留结果目录和提交 ID，可继续查询：
 
@@ -67,12 +69,12 @@ xcrun notarytool log '提交 ID' --keychain-profile IMGX '日志文件.json'
 
 若稍后确认通过，可对**同一次构建且未被修改**的应用执行 `xcrun stapler staple dist/IMGX.app`、`xcrun stapler validate dist/IMGX.app` 和 `spctl --assess --type execute --verbose=2 dist/IMGX.app`，再重新打 ZIP；或重新执行完整脚本。流程依据 [Apple 公证文档](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
 
-发布脚本的离线流程测试：`python3 Scripts/test-build-app.py`。测试模拟签名及 Apple 工具，覆盖默认临时签名、公证通过、公证拒绝/超时、装订失败和参数校验，不会读取凭据或上传应用。
+发布脚本的离线流程测试：`python3 Scripts/test-build-app.py`。测试模拟签名及 Apple 工具，覆盖默认临时签名、公证通过、API Key 与 DMG、版本号、公证拒绝/超时、装订失败和参数校验，不会读取凭据或上传应用。
 
 ## 验收与边界
 
 当前 12 项自动化测试覆盖编码、透明通道、EXIF 方向、尺寸规则、导入管理、异步预览、导出快照、失败继续、排他文件保护和画布无障碍操作。Apple 人机交互检查见 [HIG 检查报告](docs/hig-audit/REPORT.md)。窗口实操及未覆盖事项见 [开发与验收记录](docs/IMPLEMENTATION.md)。
 
-默认构建使用临时签名，仅面向本地开发。脚本支持正式签名和公证，但仓库尚未完成真实 Developer ID 签名、公证或上架验收。不支持动图保留，不承诺 EXIF、ICC、HDR 等信息完整保留。列表和设置不跨启动保存。
+默认构建使用临时签名，仅面向本地开发。已完成本机 Developer ID 正式签名、应用与 DMG 的真实 Apple 公证、票据装订及 Gatekeeper 验证；尚未上架或在另一台 Mac 上验收。不支持动图保留，不承诺 EXIF、ICC、HDR 等信息完整保留。列表和设置不跨启动保存。
 
 [原始 PRD](docs/PRD.md) 中的旧代码基线与已有验证属于历史描述；本仓库从空目录建立，完成情况以本仓库验收记录为准。

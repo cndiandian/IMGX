@@ -158,3 +158,13 @@
 - 每次公证使用独立结果目录，保留提交 ID、JSON 结果与日志；文档补充凭据初始化、完整命令、产物位置和超时恢复方法。
 - 实际 Release 编译、临时签名与签名校验、Info.plist 检查通过；Shell 语法及 `git diff --check` 通过。5 项离线流程测试通过，覆盖默认签名、Accepted、拒绝/超时、装订失败与参数校验。
 - 未实际使用 Developer ID 私钥签名或向 Apple 上传公证；离线测试使用模拟工具，不代表真实 Apple 服务验收。
+
+## 参考 PodLilt 完成真实发布流程（2026-11-04）
+
+- 读取参考项目的构建、发布脚本及 CI 配置，沿用签名和 App Store Connect API Key 环境变量；增加版本号、构建号、票据服务重试、DMG 安装镜像及 SHA-256 文件。
+- 增加 `Scripts/release.sh` 一键发布入口、配置模板和 `docs/RELEASING.md` 分步指南。本机配置保存在被忽略的 `.release.env`，权限 600；不复制或提交私钥，不修改参考项目。
+- 7 项离线流程测试、Shell 语法和 `git diff --check` 通过，覆盖 API Key 认证、DMG、版本字段及错误路径。
+- 真实 Release 0.1.0（构建 1）使用本机 Developer ID Application 证书签名，Team ID 为 8T4S63Q2KK，确认包含 Hardened Runtime 和 Apple 安全时间戳。
+- 应用公证 ID：`dc3b51c0-2e03-4a81-9faf-bd91ceba3890`；DMG 公证 ID：`df756114-61d4-4a8a-8034-2e0a8cb2c9c7`。两者均为 Accepted，日志 issues 为 null。
+- 应用及 DMG 的公证票据装订、票据验证、签名检查和 Gatekeeper 检查全部通过（Notarized Developer ID）；ZIP 和 DMG 的 SHA-256 校验通过。产物位于 `dist/notarization.PorlME/`，未发布 GitHub 或上传应用商店。
+- 未进行另一台 Mac 的安装、首次启动和离线 Gatekeeper 实操验收。

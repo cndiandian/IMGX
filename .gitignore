@@ -1,5 +1,8 @@
 .build/
 dist/
+/.release.env
+*.p8
+*.p12
 .DS_Store
 .swiftpm/
 *.xcuserstate
