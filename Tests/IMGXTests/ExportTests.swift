@@ -52,6 +52,29 @@ import Foundation
     #expect(Set(contents).count == 10)
 }
 
+@Test func batchEncodingMatchesPreviewAcrossFormats() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    var settings = ConversionSettings()
+    settings.format = .png
+    let source = directory.appendingPathComponent("source.png")
+    let original = try ImageCodec.convert(image: fixture(), settings: settings).data
+    try original.write(to: source)
+    for format in OutputFormat.allCases {
+        settings.format = format
+        settings.quality = 37
+        settings.size = .half
+        let preview = try ImageCodec.convert(url: source, settings: settings)
+        let output = try await ImageProcessor.shared.export(url: source, settings: settings, directory: directory)
+        let data = try Data(contentsOf: output.url)
+        #expect(data == preview.data)
+        #expect(output.byteCount == data.count)
+        #expect(try ImageCodec.decode(data).width == 40)
+    }
+    #expect(try Data(contentsOf: source) == original)
+}
+
 @MainActor @Test func exportRetainsParameterSnapshot() async throws {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

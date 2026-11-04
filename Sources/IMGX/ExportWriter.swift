@@ -27,9 +27,10 @@ extension ImageProcessor {
     func export(url: URL, settings: ConversionSettings, directory: URL) throws -> ExportedFile {
         try Task.checkCancellation()
         return try autoreleasepool {
-            let result = try ImageCodec.convert(url: url, settings: settings)
-            let target = try ExportWriter.write(result.data, source: url, format: settings.format, directory: directory)
-            return ExportedFile(url: target, byteCount: result.data.count)
+            let data = try ImageCodec.encode(url: url, settings: settings)
+            try Task.checkCancellation()
+            let target = try ExportWriter.write(data, source: url, format: settings.format, directory: directory)
+            return ExportedFile(url: target, byteCount: data.count)
         }
     }
 }

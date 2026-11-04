@@ -16,7 +16,7 @@ enum CodecError: LocalizedError {
     }
 }
 
-struct EncodedImage: @unchecked Sendable {
+struct EncodedImage: Sendable {
     let data: Data
     let original: CGImage
     let decoded: CGImage
@@ -62,14 +62,27 @@ enum ImageCodec {
         }
     }
 
-    static func convert(url: URL, settings: ConversionSettings) throws -> EncodedImage {
+    static func load(url: URL) throws -> CGImage {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-        let image = try decode(Data(contentsOf: url))
-        return try convert(image: image, settings: settings)
+        return try decode(Data(contentsOf: url))
+    }
+
+    static func convert(url: URL, settings: ConversionSettings) throws -> EncodedImage {
+        try convert(image: load(url: url), settings: settings)
     }
 
     static func convert(image: CGImage, settings: ConversionSettings) throws -> EncodedImage {
+        let data = try encode(image: image, settings: settings)
+        return try EncodedImage(data: data, original: image, decoded: decode(data))
+    }
+
+    /// 导出只需要编码数据；预览另外解码输出，用于真实画质对比。
+    static func encode(url: URL, settings: ConversionSettings) throws -> Data {
+        try encode(image: load(url: url), settings: settings)
+    }
+
+    static func encode(image: CGImage, settings: ConversionSettings) throws -> Data {
         guard settings.quality.isFinite, (1...100).contains(settings.quality) else { throw CodecError.encode }
         let (w, h) = try settings.outputSize(width: image.width, height: image.height)
         guard let context = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
@@ -81,12 +94,13 @@ enum ImageCodec {
         }
         context.interpolationQuality = .high
         context.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
-        guard let raster = context.makeImage(), let raw = context.data else { throw CodecError.encode }
         let data: Data
         if settings.format == .webp {
+            guard let raw = context.data else { throw CodecError.encode }
             // libwebp expects straight RGBA; CGContext uses premultiplied alpha.
+            // 此缓冲区由当前 CGContext 独占，无需复制整张 RGBA 图像。
             let count = w * h * 4
-            var bytes = Array(UnsafeBufferPointer(start: raw.assumingMemoryBound(to: UInt8.self), count: count))
+            let bytes = raw.assumingMemoryBound(to: UInt8.self)
             for i in stride(from: 0, to: count, by: 4) {
                 let alpha = Int(bytes[i + 3])
                 if alpha > 0 && alpha < 255 {
@@ -94,14 +108,14 @@ enum ImageCodec {
                 }
             }
             var output: UnsafeMutablePointer<UInt8>?
-            let length = bytes.withUnsafeBufferPointer { buffer in
-                if settings.lossless { return WebPEncodeLosslessRGBA(buffer.baseAddress, Int32(w), Int32(h), Int32(w * 4), &output) }
-                return WebPEncodeRGBA(buffer.baseAddress, Int32(w), Int32(h), Int32(w * 4), Float(settings.quality), &output)
-            }
+            let length = settings.lossless
+                ? WebPEncodeLosslessRGBA(bytes, Int32(w), Int32(h), Int32(w * 4), &output)
+                : WebPEncodeRGBA(bytes, Int32(w), Int32(h), Int32(w * 4), Float(settings.quality), &output)
             guard length > 0, let output else { throw CodecError.encode }
             defer { WebPFree(output) }
             data = Data(bytes: output, count: length)
         } else {
+            guard let raster = context.makeImage() else { throw CodecError.encode }
             let buffer = NSMutableData()
             let type = settings.format == .jpeg ? UTType.jpeg.identifier : UTType.png.identifier
             guard let destination = CGImageDestinationCreateWithData(buffer, type as CFString, 1, nil) else { throw CodecError.encode }
@@ -110,7 +124,7 @@ enum ImageCodec {
             guard CGImageDestinationFinalize(destination) else { throw CodecError.encode }
             data = buffer as Data
         }
-        return try EncodedImage(data: data, original: image, decoded: decode(data))
+        return data
     }
 }
 
@@ -119,16 +133,10 @@ actor ImageProcessor {
     static let shared = ImageProcessor()
     func load(url: URL) throws -> CGImage {
         try Task.checkCancellation()
-        let access = url.startAccessingSecurityScopedResource()
-        defer { if access { url.stopAccessingSecurityScopedResource() } }
-        return try autoreleasepool { try ImageCodec.decode(Data(contentsOf: url)) }
+        return try autoreleasepool { try ImageCodec.load(url: url) }
     }
     func convert(image: CGImage, settings: ConversionSettings) throws -> EncodedImage {
         try Task.checkCancellation()
         return try autoreleasepool { try ImageCodec.convert(image: image, settings: settings) }
-    }
-    func convert(url: URL, settings: ConversionSettings) throws -> EncodedImage {
-        try Task.checkCancellation()
-        return try autoreleasepool { try ImageCodec.convert(url: url, settings: settings) }
     }
 }
