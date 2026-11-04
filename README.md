@@ -4,6 +4,15 @@
 
 ## 使用
 
+Apple Silicon、macOS 26+ 可以通过 Homebrew 安装：
+
+```sh
+brew install --cask cndiandian/tap/imgx
+```
+
+已安装后执行 `brew update && brew upgrade --cask imgx` 更新。
+若 Homebrew 提示 Cask 来自未信任的 tap，先执行 `brew trust --cask cndiandian/tap/imgx`，再重试安装。
+
 构建后打开 `dist/IMGX.app`。选择或拖入 JPG、JPEG、PNG、WebP、HEIC 静态图片，调整输出格式、质量及尺寸，通过滑杆或分屏检查真实编码结果，再选择文件夹导出全部图片。输出支持 WebP、JPEG、PNG；同名文件自动编号，保留原文件。
 
 - ⌘O 添加图片，⌘Return 导出全部，⌘0 适应窗口。
@@ -74,6 +83,8 @@ xcrun notarytool log '提交 ID' --keychain-profile IMGX '日志文件.json'
 ## GitHub 自动发布
 
 推送 `v0.1.0` 格式的 tag 后，GitHub Actions 自动运行测试、编译、正式签名、公证并创建带 ZIP / DMG 和校验文件的 Release。首次需在仓库配置五项 Secrets，详细步骤见 [GitHub 发布配置指南](docs/GITHUB_RELEASE.md)。
+
+Release 成功后自动同步 `cndiandian/homebrew-tap` 中的 IMGX Cask，使用发布 DMG 的精确 SHA-256。需额外设置 `HOMEBREW_TAP_TOKEN`，仅授权 tap 仓库的 Contents 读写权限，配置步骤见同一指南。
 
 ## 验收与边界
 

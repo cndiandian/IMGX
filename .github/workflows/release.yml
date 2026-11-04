@@ -69,6 +69,7 @@ jobs:
           set -euo pipefail
           swift test
           python3 Scripts/test-build-app.py
+          python3 Scripts/test-homebrew-tap.py
 
       - name: 导入 Developer ID 证书
         env:
@@ -187,3 +188,45 @@ jobs:
             "IMGX-v${APP_VERSION}.zip" "IMGX-v${APP_VERSION}.zip.sha256" \
             "IMGX-v${APP_VERSION}.dmg" "IMGX-v${APP_VERSION}.dmg.sha256" \
             --repo "$GH_REPO" --verify-tag --generate-notes --title "IMGX $RELEASE_TAG"
+
+  homebrew:
+    name: 更新 Homebrew tap
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: homebrew-imgx
+      cancel-in-progress: false
+    steps:
+      - name: 检出发布脚本
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: 检查 tap 写入凭据
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo '::error::请添加 HOMEBREW_TAP_TOKEN，授权写入 cndiandian/homebrew-tap；详见 docs/GITHUB_RELEASE.md'
+            exit 1
+          fi
+
+      - name: 下载已发布的 DMG 并校验
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          APP_VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          gh release download "$RELEASE_TAG" --repo "$GH_REPO" --dir dist/homebrew-release \
+            --pattern "IMGX-v${APP_VERSION}.dmg" --pattern "IMGX-v${APP_VERSION}.dmg.sha256"
+          cd dist/homebrew-release
+          sha256sum -c "IMGX-v${APP_VERSION}.dmg.sha256"
+
+      - name: 更新 IMGX Cask
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          APP_VERSION: ${{ needs.build.outputs.version }}
+        run: python3 Scripts/update-homebrew-tap.py "$APP_VERSION" "dist/homebrew-release/IMGX-v${APP_VERSION}.dmg"

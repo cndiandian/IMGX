@@ -95,8 +95,38 @@ git push origin v0.1.0
 
 若 Actions 被仓库或组织禁用，到“Settings → Actions → General”启用 GitHub Actions，并允许工作流引用的 GitHub 官方 Actions。工作流已为发布 job 声明写入权限，通常不需要把所有工作流的默认权限改为可写，也不需要额外创建 PAT。
 
+## 自动更新 Homebrew
+
+Release 成功后会运行独立的“更新 Homebrew tap”job：从已经发布的 Release 下载 DMG 和校验文件，验证 SHA-256，随后更新 `cndiandian/homebrew-tap` 默认分支上的 `Casks/imgx.rb`。Cask 包含最低 macOS 26 和 arm64 架构约束。相同内容不会重复提交，旧版本不会覆盖新版本，并发冲突会重新读取版本后重试。
+
+需在 **IMGX** 仓库增加第六项 Repository Secret：`HOMEBREW_TAP_TOKEN`。默认 `GITHUB_TOKEN` 仅能访问当前工作流仓库，不能据此写入另一个 tap 仓库。
+
+1. 如果仍保留 PodLilt 使用的 `HOMEBREW_TAP_TOKEN` 原值，且它有该 tap 的写权限，可以在 IMGX Secrets 中复用。无法从 PodLilt Secrets 页面取回原值。
+2. 否则打开 [Fine-grained token 创建页面](https://github.com/settings/personal-access-tokens/new)。Token name 可填 `IMGX Homebrew tap`，Resource owner 选择 `cndiandian`，设置合适的到期时间。
+3. Repository access 选择 **Only select repositories**，仅选 `homebrew-tap`。
+4. Repository permissions → **Contents** 设为 **Read and write**；Metadata 保留自动的 Read-only。无需授权 Actions、管理或其他仓库。
+5. 生成后将 token 填入 [IMGX Secrets](https://github.com/cndiandian/IMGX/settings/secrets/actions)，Name 填 `HOMEBREW_TAP_TOKEN`。不要发到聊天或写进代码。
+
+之后发布新 tag 即可自动更新 Homebrew。已存在的 `v0.1.0` tag 不会因为 main 上的工作流更新而重新触发；该版本的初始 Cask 单独从真实 Release 生成，后续 tag 才包含新的自动更新逻辑。
+
+若只有 tap 更新失败，GitHub Release 仍然有效。配置或续期 token 后，在该次 run 中选择 **Re-run failed jobs**，无需重新编译、公证或重新创建 Release。若发布版本已经被更新版本取代，脚本会跳过该旧版本以避免降级。
+
+安装及更新：
+
+```sh
+brew install --cask cndiandian/tap/imgx
+brew update
+brew upgrade --cask imgx
+```
+
+如果新版 Homebrew 提示 untrusted tap，先执行 `brew trust --cask cndiandian/tap/imgx`，仅信任该 Cask，再重试。
+
+离线验证脚本：`python3 Scripts/test-homebrew-tap.py`。可用 `TAP_DRY_RUN=1 python3 Scripts/update-homebrew-tap.py 0.1.0 /路径/IMGX-v0.1.0.dmg` 预览 Cask，不写入 GitHub。
+
+依据：[GITHUB_TOKEN 权限范围](https://docs.github.com/en/actions/concepts/security/github_token)、[细粒度 Token 权限](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)。
+
 ## 当前验收边界
 
-本地发布脚本已经完成真实 Developer ID 签名、应用与 DMG 公证、票据装订和 Gatekeeper 验证。GitHub Actions 工作流通过本地静态校验后提交；云端首次运行仍需五项 Secrets 配置和 tag 推送后验证。
+本地发布脚本已经完成真实 Developer ID 签名、应用与 DMG 公证、票据装订和 Gatekeeper 验证。云端 `v0.1.0` 发布已成功。新增 Homebrew 自动同步 job 的云端执行仍需 `HOMEBREW_TAP_TOKEN` 配置完成后，通过包含新工作流的下一版本 tag 验证。
 
 依据：[GitHub macOS 26 runner](https://github.blog/changelog/2026-02-26-macos-26-is-now-generally-available-for-github-hosted-runners/)、[GitHub Apple 证书导入指南](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/sign-xcode-applications)。

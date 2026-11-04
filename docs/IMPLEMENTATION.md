@@ -178,3 +178,12 @@
 - actionlint 1.7.12 校验、YAML 解析、9 个内嵌 Shell 步骤的 `bash -n` 及 `git diff --check` 通过。远程仓库当前无分支或 tag；没有将本机 `.release.env`、P12 或 P8 文件加入版本控制。
 - 云端 Actions 首次执行尚未验收，需用户配置五项 Secrets 后推送 tag。当前不创建 tag，不触发未配置凭据的发布。
 - 按用户要求将 origin 改为 `git@github.com:cndiandian/IMGX.git`；默认 SSH 身份为 xshwy，无仓库写权限，已验证本机现有 cndiandian Key 并通过仓库级 `core.sshCommand` 选择该身份，不改动全局 SSH 配置。
+
+## Homebrew 安装与自动同步（2026-11-04）
+
+- 确认云端 v0.1.0 发布工作流成功（run 41840837609），下载实际 Release DMG 和校验文件，验证 SHA-256 为 `b48bc81796ef1deb828b1ef9a33bd91f87d6e8ade948cb773dbc938365927738`。
+- 在用户指定的 `cndiandian/homebrew-tap` 默认 master 分支新增 `Casks/imgx.rb`，声明 arm64、macOS Tahoe（26）起和 IMGX.app；中文提交 `9986359`，随后根据真实 Homebrew 验证修复版本约束弃用语法，提交 `83e8a7d`。未修改 PodLilt Cask。
+- 新增 Python tap 同步脚本，生成发布 DMG 的精确 SHA-256，采用 GitHub Contents API 更新，支持创建、幂等、拒绝覆盖不可识别配置、跳过旧版本及 SHA 冲突重试。
+- Actions 增加独立 Homebrew job，依赖编译和 Release 发布成功，下载已发布 DMG 并验证后更新 tap；使用单独的 `HOMEBREW_TAP_TOKEN`，失效时可以只重跑失败 job。
+- 8 项离线同步测试、actionlint、YAML 解析、12 个内嵌 Shell 步骤语法及 `git diff --check` 通过。真实 Homebrew Cask 解析和 `brew fetch --cask cndiandian/tap/imgx` 下载校验通过；本机只为该 Cask 添加信任并快进更新对应 tap，未安装或替换应用。
+- 文档补充 Homebrew 安装命令及 fine-grained token 的创建步骤。旧 Secret 原值无法读回，用户需为 IMGX 配置仅有 tap Contents 读写权限的 token；新增自动同步 job 的云端端到端执行待配置后通过下一版本 tag 验收。
