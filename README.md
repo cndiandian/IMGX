@@ -92,6 +92,8 @@ Release 成功后自动同步 `cndiandian/homebrew-tap` 中的 IMGX Cask，使�
 
 当前 19 项 Swift 自动化测试覆盖编码、透明通道、EXIF 方向、尺寸规则、导入管理、异步预览、导出快照、预览/导出一致性、失败继续、排他文件保护、画布无障碍操作，以及更新版本比较、Release 来源、校验文件、下载完整性和取消行为。Apple 人机交互检查见 [HIG 检查报告](docs/hig-audit/REPORT.md)。窗口实操及未覆盖事项见 [开发与验收记录](docs/IMPLEMENTATION.md)。
 
+全仓库结构审查及整理见 [代码审查记录](docs/CODE_REVIEW.md)。构建与发布脚本另有 25 项离线测试，包含公证失败、tap 并发更新，以及草稿发布中断恢复和已发布附件保护。
+
 默认构建使用临时签名，仅面向本地开发。已完成本机 Developer ID 正式签名、应用与 DMG 的真实 Apple 公证、票据装订及 Gatekeeper 验证；尚未上架或在另一台 Mac 上验收。不支持动图保留，不承诺 EXIF、ICC、HDR 等信息完整保留。列表和设置不跨启动保存。
 
 [原始 PRD](docs/PRD.md) 中的旧代码基线与已有验证属于历史描述；本仓库从空目录建立，完成情况以本仓库验收记录为准。

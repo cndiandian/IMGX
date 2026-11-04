@@ -91,13 +91,13 @@ git push origin v0.1.0
 
 缺少 Secret 会在“检查发布凭据”步骤明确指出名称。证书导入失败通常是 P12 不包含私钥、密码不匹配或证书过期。公证认证失败需检查 `.p8`、Key ID、Issuer ID 是否属于同一 Key。
 
-如果仅 Apple 网络/票据服务暂时失败，可在同一个 run 中选择 **Re-run failed jobs**。若 GitHub Release 已存在，不会自动覆盖；请检查已有 Release 后决定如何处理。
+如果仅 Apple 网络/票据服务暂时失败，可在同一个 run 中选择 **Re-run failed jobs**。发布 job 先创建草稿，再上传并验证四个附件的 GitHub SHA-256，最后公开。上传中断时重跑会继续同一草稿；若发布已成功但响应丢失，重跑确认附件完全一致后幂等通过。已公开的附件与本次产物不一致时会停止，不覆盖现有 Release。优先重跑失败 job，避免全部重跑后重新签名造成产物变化。
 
 若 Actions 被仓库或组织禁用，到“Settings → Actions → General”启用 GitHub Actions，并允许工作流引用的 GitHub 官方 Actions。工作流已为发布 job 声明写入权限，通常不需要把所有工作流的默认权限改为可写，也不需要额外创建 PAT。
 
 ## 自动更新 Homebrew
 
-Release 成功后会运行独立的“更新 Homebrew tap”job：从已经发布的 Release 下载 DMG 和校验文件，验证 SHA-256，随后更新 `cndiandian/homebrew-tap` 默认分支上的 `Casks/imgx.rb`。Cask 包含最低 macOS 26 和 arm64 架构约束。相同内容不会重复提交，旧版本不会覆盖新版本，并发冲突会重新读取版本后重试。
+Release 成功后会运行独立的“更新 Homebrew tap”job：从已经发布的 Release 下载 DMG 和校验文件，验证 SHA-256，随后更新 `cndiandian/homebrew-tap` 默认分支上的 `Casks/imgx.rb`。Cask 包含最低 macOS 26 和 arm64 架构约束。相同内容不会重复提交，旧版本不会覆盖新版本，并发冲突会重新读取版本后重试。不使用跨版本的单 pending 并发组，避免较新的待同步版本被另一个排队任务挤掉。
 
 需在 **IMGX** 仓库增加第六项 Repository Secret：`HOMEBREW_TAP_TOKEN`。默认 `GITHUB_TOKEN` 仅能访问当前工作流仓库，不能据此写入另一个 tap 仓库。
 
@@ -122,6 +122,8 @@ brew upgrade --cask imgx
 如果新版 Homebrew 提示 untrusted tap，先执行 `brew trust --cask cndiandian/tap/imgx`，仅信任该 Cask，再重试。
 
 离线验证脚本：`python3 Scripts/test-homebrew-tap.py`。可用 `TAP_DRY_RUN=1 python3 Scripts/update-homebrew-tap.py 0.1.0 /路径/IMGX-v0.1.0.dmg` 预览 Cask，不写入 GitHub。
+
+Release 草稿、失败恢复和已发布附件保护的离线测试：`python3 Scripts/test-publish-release.py`。GitHub CLI 调用和错误处理由 `Scripts/github_api.py` 共享。
 
 依据：[GITHUB_TOKEN 权限范围](https://docs.github.com/en/actions/concepts/security/github_token)、[细粒度 Token 权限](https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens)。
 

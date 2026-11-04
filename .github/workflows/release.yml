@@ -70,6 +70,7 @@ jobs:
           swift test
           python3 Scripts/test-build-app.py
           python3 Scripts/test-homebrew-tap.py
+          python3 Scripts/test-publish-release.py
 
       - name: 导入 Developer ID 证书
         env:
@@ -167,6 +168,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: 检出发布脚本
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
       - name: 下载已验证的发布产物
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
@@ -177,26 +183,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          RELEASE_TAG: ${{ github.ref_name }}
           APP_VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          set -euo pipefail
-          cd release-assets
-          sha256sum -c "IMGX-v${APP_VERSION}.zip.sha256"
-          sha256sum -c "IMGX-v${APP_VERSION}.dmg.sha256"
-          gh release create "$RELEASE_TAG" \
-            "IMGX-v${APP_VERSION}.zip" "IMGX-v${APP_VERSION}.zip.sha256" \
-            "IMGX-v${APP_VERSION}.dmg" "IMGX-v${APP_VERSION}.dmg.sha256" \
-            --repo "$GH_REPO" --verify-tag --generate-notes --title "IMGX $RELEASE_TAG"
+        run: python3 Scripts/publish-release.py "$APP_VERSION" release-assets
 
   homebrew:
     name: 更新 Homebrew tap
     needs: [build, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    concurrency:
-      group: homebrew-imgx
-      cancel-in-progress: false
     steps:
       - name: 检出发布脚本
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

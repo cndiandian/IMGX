@@ -2,32 +2,17 @@
 """将已发布 DMG 的精确校验和同步至 Homebrew tap。"""
 import base64
 import hashlib
-import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import sys
+from github_api import GitHubError, github_api
 
 ENDPOINT = 'repos/cndiandian/homebrew-tap/contents/Casks/imgx.rb'
 
 
-class GitHubError(RuntimeError):
-    def __init__(self, message, status=None):
-        super().__init__(message)
-        self.status = status
-
-
 def gh_api(method, payload=None):
-    command = ['gh', 'api', '--method', method, ENDPOINT]
-    if payload is not None:
-        command += ['--input', '-']
-    result = subprocess.run(command, input=json.dumps(payload) if payload else None,
-                            text=True, capture_output=True)
-    if result.returncode:
-        match = re.search(r'HTTP (\d{3})', result.stderr)
-        raise GitHubError(result.stderr.strip(), int(match[1]) if match else None)
-    return json.loads(result.stdout)
+    return github_api(ENDPOINT, method, payload)
 
 
 def version_tuple(version):
