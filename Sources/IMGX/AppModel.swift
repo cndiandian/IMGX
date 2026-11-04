@@ -1,5 +1,4 @@
 import AppKit
-import ImageIO
 import Observation
 import UniformTypeIdentifiers
 
@@ -45,24 +44,45 @@ struct ToastMessage: Identifiable {
 
 @MainActor @Observable
 final class AppModel {
-    var items: [ImageItem] = []
-    var selectedID: UUID? { didSet { if oldValue != selectedID { preview = nil; selectedSource = nil; selectedPixelSize = nil; refreshPreview() } } }
-    var settings = ConversionSettings() { didSet { if oldValue != settings { refreshPreview() } } }
-    var preview: EncodedImage?
-    var selectedPixelSize: CGSize?
-    private var selectedSource: CGImage?
-    var previewLoading = false
-    var previewRevision = UUID()
-    var lastEditedWidth = true
-    var completedCount = 0
-    private var previewTask: Task<Void, Never>?
+    private(set) var items: [ImageItem] = []
+    var selectedID: UUID? {
+        didSet {
+            guard oldValue != selectedID else { return }
+            preview = nil
+            selectedSource = nil
+            selectedPixelSize = nil
+            refreshPreview()
+        }
+    }
+    var settings = ConversionSettings() {
+        didSet {
+            if oldValue != settings { refreshPreview() }
+        }
+    }
+    private(set) var preview: EncodedImage?
+    private(set) var selectedPixelSize: CGSize?
+    @ObservationIgnored private var selectedSource: CGImage?
+    private(set) var previewLoading = false
+    @ObservationIgnored private var previewRevision = UUID()
+    @ObservationIgnored private var lastEditedWidth = true
+    private(set) var completedCount = 0
+    @ObservationIgnored private var previewTask: Task<Void, Never>?
     var isExporting = false
-    var isChoosingExportDestination = false
-    var toast: ToastMessage?
-    private var toastTask: Task<Void, Never>?
+    private(set) var isChoosingExportDestination = false
+    private(set) var toast: ToastMessage?
+    @ObservationIgnored private var toastTask: Task<Void, Never>?
     var selected: ImageItem? { items.first { $0.id == selectedID } }
 
-    func refreshPreview() {
+    var dimensionError: String? {
+        guard settings.size == .custom else { return nil }
+        do {
+            _ = try settings.outputSize(width: Int(selectedPixelSize?.width ?? 1),
+                                             height: Int(selectedPixelSize?.height ?? 1))
+            return nil
+        } catch { return error.localizedDescription }
+    }
+
+    private func refreshPreview() {
         previewTask?.cancel()
         let revision = UUID()
         previewRevision = revision
@@ -97,7 +117,7 @@ final class AppModel {
         }
     }
 
-    func clearPreviewError() {
+    private func clearPreviewError() {
         if toast?.kind == .previewError { dismissToast() }
     }
 
@@ -264,32 +284,4 @@ final class AppModel {
         let index = items.firstIndex { $0.id == selectedID } ?? 0
         selectedID = items[max(0, min(items.count - 1, index + delta))].id
     }
-}
-
-enum Thumbnail {
-    static func load(url: URL) -> CGImage? {
-        let access = url.startAccessingSecurityScopedResource()
-        defer { if access { url.stopAccessingSecurityScopedResource() } }
-        if let source = CGImageSourceCreateWithURL(url as CFURL, nil) {
-            let options: [CFString: Any] = [
-                kCGImageSourceCreateThumbnailFromImageAlways: true,
-                kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: 96
-            ]
-            if let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) { return image }
-        }
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        guard let image = try? ImageCodec.decode(data) else { return nil }
-        let factor = min(1, 96 / CGFloat(max(image.width, image.height)))
-        let w = max(1, Int(CGFloat(image.width) * factor)), h = max(1, Int(CGFloat(image.height) * factor))
-        guard let context = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
-                                      bytesPerRow: w * 4, space: ImageCodec.colorSpace, bitmapInfo: ImageCodec.bitmapInfo) else { return nil }
-        context.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
-        return context.makeImage()
-    }
-}
-
-actor ThumbnailWorker {
-    static let shared = ThumbnailWorker()
-    func load(url: URL) -> CGImage? { autoreleasepool { Thumbnail.load(url: url) } }
 }

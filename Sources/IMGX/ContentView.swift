@@ -6,7 +6,6 @@ struct ContentView: View {
     @State private var dropTargeted = false
     @State private var advanced = false
     @FocusState private var sidebarFocused: Bool
-    @State private var dimensionFocusGroup = DimensionFocusGroup()
     @State private var resetCanvas = UUID()
     @State private var comparisonMode: ComparisonMode = .slider
     @Environment(\.colorSchemeContrast) private var contrast
@@ -172,7 +171,7 @@ struct ContentView: View {
             }
                 .accessibilityLabel("更多设置").buttonStyle(.borderless)
                 .help("更多设置")
-                .popover(isPresented: $advanced) { advancedSettings }
+                .popover(isPresented: $advanced) { AdvancedSettingsView(model: model, isPresented: $advanced) }
             Spacer(minLength: 0)
             Button(model.isChoosingExportDestination ? "选择保存位置" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
                 NSApp.keyWindow?.makeFirstResponder(nil)
@@ -185,71 +184,6 @@ struct ContentView: View {
         .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
         .disabled(model.isExporting)
         .onChange(of: model.settings.size) { _, preset in if preset == .custom { advanced = true } }
-    }
-
-    private var dimensionError: String? {
-        guard model.settings.size == .custom else { return nil }
-        do {
-            _ = try model.settings.outputSize(width: Int(model.selectedPixelSize?.width ?? 1),
-                                             height: Int(model.selectedPixelSize?.height ?? 1))
-            return nil
-        } catch { return error.localizedDescription }
-    }
-
-    private var advancedSettings: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("更多设置").font(.headline)
-            if model.settings.format == .webp {
-                Toggle("WebP 无损压缩", isOn: $model.settings.lossless)
-            }
-            Text(model.settings.format == .jpeg ? "JPEG 不支持透明，透明区域将铺白。" : "当前格式保留透明通道。")
-                .font(.caption).foregroundStyle(.secondary)
-            Divider()
-            Text("自定义尺寸").fontWeight(.medium)
-            if let size = model.selectedPixelSize {
-                Text("原始尺寸：\(Int(size.width)) × \(Int(size.height)) px")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-            HStack(alignment: .top, spacing: 16) {
-                dimensionInput("宽度", width: true)
-                dimensionInput("高度", width: false)
-            }
-            if let error = dimensionError {
-                Label(error, systemImage: "exclamationmark.circle")
-                    .font(.caption).foregroundStyle(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("尺寸错误：\(error)")
-            }
-            Label("按当前图片等比联动，批量处理保持各图比例。", systemImage: "link")
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text("正整数 1～16383；均留空时使用原尺寸。")
-                .font(.caption).foregroundStyle(.secondary)
-            HStack { Spacer(); Button("完成") { advanced = false }.keyboardShortcut(.defaultAction) }
-        }
-        .padding(24).frame(width: 330)
-        .disabled(model.isExporting)
-    }
-
-    private func dimensionInput(_ title: String, width: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("\(title)（px）").font(.caption).foregroundStyle(.secondary)
-            DimensionField(title: title, placeholder: originalDimension(width: width), focusGroup: dimensionFocusGroup, validationMessage: ImageSizing.validationMessage(width ? model.settings.width : model.settings.height),
-                           text: Binding(get: { width ? model.settings.width : model.settings.height },
-                                         set: { model.editDimension($0, width: width) }))
-                .frame(height: 24)
-                .overlay {
-                    if ImageSizing.validationMessage(width ? model.settings.width : model.settings.height) != nil {
-                        RoundedRectangle(cornerRadius: 5).stroke(.red, lineWidth: 1)
-                    }
-                }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func originalDimension(width: Bool) -> String {
-        guard let size = model.selectedPixelSize else { return model.previewLoading ? "读取中" : "不可用" }
-        return String(Int(width ? size.width : size.height))
     }
 
     private var emptyState: some View {
@@ -379,7 +313,7 @@ struct ContentView: View {
     }
 
     @ViewBuilder private var toast: some View {
-        if let message = model.toast, !(advanced && dimensionError != nil && message.kind == .previewError) {
+        if let message = model.toast, !(advanced && model.dimensionError != nil && message.kind == .previewError) {
             HStack(spacing: 12) {
                 Image(systemName: message.kind == .previewError ? "exclamationmark.triangle" : "info.circle")
                 Text(message.text).font(.system(size: 12)).textSelection(.enabled)
@@ -397,79 +331,12 @@ struct ContentView: View {
     }
 }
 
-struct BrandIcon: View {
-    let size: CGFloat
-    var body: some View {
-        Image(nsImage: NSImage(systemSymbolName: "inset.left.half.square.dashed.micro", accessibilityDescription: nil)
-              ?? NSImage(systemSymbolName: "inset.left.half.square", accessibilityDescription: nil)
-              ?? NSImage(systemSymbolName: "square.lefthalf.filled", accessibilityDescription: nil)!)
-            .resizable().scaledToFit()
-            .frame(width: size * 0.54, height: size * 0.54)
-            .foregroundStyle(Color(white: 0.18))
-            .frame(width: size, height: size)
-            .background(Color(white: 0.97), in: RoundedRectangle(cornerRadius: size * 0.23))
-            .overlay(RoundedRectangle(cornerRadius: size * 0.23).stroke(.black.opacity(0.06)))
-            .shadow(color: .black.opacity(0.1), radius: size * 0.08, y: size * 0.04)
-            .accessibilityHidden(true)
-    }
-}
-
 @MainActor private func droppedURL(_ provider: NSItemProvider) async -> URL? {
     await withCheckedContinuation { continuation in
         provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
             if let url = item as? URL { continuation.resume(returning: url) }
             else if let data = item as? Data { continuation.resume(returning: URL(dataRepresentation: data, relativeTo: nil)) }
             else { continuation.resume(returning: nil) }
-        }
-    }
-}
-
-struct ImageActions {
-    var add: () -> Void
-    var canAdd: Bool
-    var reset: () -> Void
-    var hasImages: Bool
-    var export: () -> Void
-    var canExport: Bool
-    var remove: () -> Void
-    var clear: () -> Void
-    var canManageFiles: Bool
-    var showAdvanced: () -> Void
-    var canChangeSettings: Bool
-    var comparison: Binding<ComparisonMode>
-}
-
-struct ImageActionsKey: FocusedValueKey { typealias Value = ImageActions }
-extension FocusedValues {
-    var imageActions: ImageActions? {
-        get { self[ImageActionsKey.self] }
-        set { self[ImageActionsKey.self] = newValue }
-    }
-}
-
-struct ImageCommands: Commands {
-    @FocusedValue(\.imageActions) private var actions
-    var body: some Commands {
-        CommandGroup(replacing: .newItem) {
-            Button("添加图片") { actions?.add() }
-                .keyboardShortcut("o").disabled(actions?.canAdd != true)
-            Button("导出全部图片") { actions?.export() }
-                .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
-        }
-        CommandGroup(after: .pasteboard) {
-            Divider()
-            Button("移除选中图片") { actions?.remove() }.disabled(actions?.canManageFiles != true)
-            Button("清空图片列表") { actions?.clear() }.disabled(actions?.canManageFiles != true)
-        }
-        CommandGroup(after: .toolbar) {
-            Picker("对比方式", selection: Binding(get: { actions?.comparison.wrappedValue ?? .slider },
-                                                set: { actions?.comparison.wrappedValue = $0 })) {
-                ForEach(ComparisonMode.allCases) { Text($0.rawValue).tag($0) }
-            }.disabled(actions?.hasImages != true)
-            Button("适应窗口") { actions?.reset() }
-                .keyboardShortcut("0").disabled(actions?.hasImages != true)
-            Divider()
-            Button("更多图像设置") { actions?.showAdvanced() }.disabled(actions?.canChangeSettings != true)
         }
     }
 }
