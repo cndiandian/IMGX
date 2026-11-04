@@ -200,6 +200,11 @@ struct ContentView: View {
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
             Text("自定义尺寸").fontWeight(.medium)
+            if let size = model.selectedPixelSize {
+                Text("原始尺寸：\(Int(size.width)) × \(Int(size.height)) px")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
             HStack(alignment: .top, spacing: 16) {
                 dimensionInput("宽度", width: true)
                 dimensionInput("高度", width: false)
@@ -230,7 +235,7 @@ struct ContentView: View {
     private func dimensionInput(_ title: String, width: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("\(title)（px）").font(.caption).foregroundStyle(.secondary)
-            DimensionField(title: title, focusGroup: dimensionFocusGroup, validationMessage: dimensionFieldError(width ? model.settings.width : model.settings.height),
+            DimensionField(title: title, placeholder: originalDimension(width: width), focusGroup: dimensionFocusGroup, validationMessage: dimensionFieldError(width ? model.settings.width : model.settings.height),
                            text: Binding(get: { width ? model.settings.width : model.settings.height },
                                          set: { model.editDimension($0, width: width) }))
                 .frame(height: 24)
@@ -241,6 +246,11 @@ struct ContentView: View {
                 }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func originalDimension(width: Bool) -> String {
+        guard let size = model.selectedPixelSize else { return "读取中" }
+        return String(Int(width ? size.width : size.height))
     }
 
     private var emptyState: some View {

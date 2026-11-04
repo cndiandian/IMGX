@@ -4,13 +4,14 @@ import SwiftUI
 /// Uses the native field editor so delete, selection and Tab retain standard Mac behavior.
 struct DimensionField: NSViewRepresentable {
     let title: String
+    let placeholder: String
     let focusGroup: DimensionFocusGroup
     var validationMessage: String? = nil
     @Binding var text: String
     func makeCoordinator() -> Coordinator { Coordinator(text: $text, title: title, focusGroup: focusGroup) }
     func makeNSView(context: Context) -> NSTextField {
         let field = AccessibleDimensionTextField(string: text)
-        field.placeholderString = title
+        field.placeholderString = placeholder
         field.setAccessibilityLabel("自定义\(title)")
         field.isEditable = true
         field.isSelectable = true
@@ -23,6 +24,7 @@ struct DimensionField: NSViewRepresentable {
     }
     func updateNSView(_ field: NSTextField, context: Context) {
         context.coordinator.text = $text
+        field.placeholderString = placeholder
         field.setAccessibilityHelp(validationMessage ?? "像素，正整数 1 到 16383；留空时可使用原尺寸。")
         field.toolTip = validationMessage
         if field.stringValue != text { field.stringValue = text }
