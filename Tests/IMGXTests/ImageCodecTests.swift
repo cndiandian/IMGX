@@ -84,6 +84,9 @@ func rgba(_ image: CGImage, x: Int, y: Int) throws -> [UInt8] {
     #expect(try settings.outputSize(width: 80, height: 40).0 == 80)
     #expect(throws: (any Error).self) { try settings.outputSize(width: 16384, height: 40) }
     #expect(throws: (any Error).self) { try settings.outputSize(width: 11000, height: 11000) }
+    for (width, height) in [(0, 40), (80, 0), (-1, 40), (Int.max, Int.max)] {
+        #expect(throws: (any Error).self) { try settings.outputSize(width: width, height: height) }
+    }
 }
 
 @Test func diskInputsAndCorruptFile() throws {

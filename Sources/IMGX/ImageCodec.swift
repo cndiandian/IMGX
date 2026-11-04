@@ -4,54 +4,6 @@ import ImageIO
 import UniformTypeIdentifiers
 import CWebP
 
-enum OutputFormat: String, CaseIterable, Identifiable, Sendable {
-    case webp = "WebP", jpeg = "JPEG", png = "PNG"
-    var id: Self { self }
-    var fileExtension: String { self == .jpeg ? "jpg" : rawValue.lowercased() }
-}
-
-enum SizePreset: String, CaseIterable, Identifiable, Sendable {
-    case original = "原尺寸", half = "50%", quarter = "25%", custom = "自定义"
-    var id: Self { self }
-}
-
-struct ConversionSettings: Equatable, Sendable {
-    var format: OutputFormat = .webp
-    var quality: Double = 80
-    var lossless = false
-    var size: SizePreset = .original
-    var width: String = ""
-    var height: String = ""
-    var usesQuality: Bool { format == .jpeg || (format == .webp && !lossless) }
-
-    func outputSize(width sourceWidth: Int, height sourceHeight: Int) throws -> (Int, Int) {
-        var scale: Double = 1
-        switch size {
-        case .original: break
-        case .half: scale = 0.5
-        case .quarter: scale = 0.25
-        case .custom:
-            func dimension(_ text: String) throws -> Int? {
-                guard !text.isEmpty else { return nil }
-                guard text.allSatisfy({ $0.isASCII && $0.isNumber }),
-                      let value = Int(text), (1...16383).contains(value) else {
-                    throw CodecError.invalidDimensions
-                }
-                return value
-            }
-            let w = try dimension(width)
-            let h = try dimension(height)
-            if let w, let h { scale = min(Double(w) / Double(sourceWidth), Double(h) / Double(sourceHeight)) }
-            else if let w { scale = Double(w) / Double(sourceWidth) }
-            else if let h { scale = Double(h) / Double(sourceHeight) }
-        }
-        let w = max(1, Int((Double(sourceWidth) * scale).rounded()))
-        let h = max(1, Int((Double(sourceHeight) * scale).rounded()))
-        guard w <= 16383, h <= 16383, w * h <= 100_000_000 else { throw CodecError.imageTooLarge }
-        return (w, h)
-    }
-}
-
 enum CodecError: LocalizedError {
     case decode, encode, invalidDimensions, imageTooLarge
     var errorDescription: String? {
@@ -81,7 +33,7 @@ enum ImageCodec {
             if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
                let w = properties[kCGImagePropertyPixelWidth] as? Int,
                let h = properties[kCGImagePropertyPixelHeight] as? Int,
-               w > 0, h > 0, w <= 100_000_000 / h {
+               w > 0, h > 0, w <= ImageSizing.maximumPixelCount / h {
                 // ImageIO applies EXIF orientation before resizing or display.
                 let options: [CFString: Any] = [
                     kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -96,7 +48,7 @@ enum ImageCodec {
             guard let bytes = buffer.bindMemory(to: UInt8.self).baseAddress else { throw CodecError.decode }
             var w: Int32 = 0, h: Int32 = 0
             guard WebPGetInfo(bytes, data.count, &w, &h) != 0,
-                  w > 0, h > 0, Int(w) * Int(h) <= 100_000_000,
+                  w > 0, h > 0, Int(w) * Int(h) <= ImageSizing.maximumPixelCount,
                   let pixels = WebPDecodeRGBA(bytes, data.count, &w, &h) else { throw CodecError.decode }
             defer { WebPFree(pixels) }
             let rgba = Data(bytes: pixels, count: Int(w) * Int(h) * 4)

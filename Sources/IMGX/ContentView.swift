@@ -231,22 +231,15 @@ struct ContentView: View {
         .disabled(model.isExporting)
     }
 
-    private func dimensionFieldError(_ value: String) -> String? {
-        guard !value.isEmpty else { return nil }
-        guard value.allSatisfy({ $0.isASCII && $0.isNumber }), let number = Int(value), (1...16383).contains(number)
-        else { return "请输入 1～16383 的正整数，或留空使用原尺寸。" }
-        return nil
-    }
-
     private func dimensionInput(_ title: String, width: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("\(title)（px）").font(.caption).foregroundStyle(.secondary)
-            DimensionField(title: title, placeholder: originalDimension(width: width), focusGroup: dimensionFocusGroup, validationMessage: dimensionFieldError(width ? model.settings.width : model.settings.height),
+            DimensionField(title: title, placeholder: originalDimension(width: width), focusGroup: dimensionFocusGroup, validationMessage: ImageSizing.validationMessage(width ? model.settings.width : model.settings.height),
                            text: Binding(get: { width ? model.settings.width : model.settings.height },
                                          set: { model.editDimension($0, width: width) }))
                 .frame(height: 24)
                 .overlay {
-                    if dimensionFieldError(width ? model.settings.width : model.settings.height) != nil {
+                    if ImageSizing.validationMessage(width ? model.settings.width : model.settings.height) != nil {
                         RoundedRectangle(cornerRadius: 5).stroke(.red, lineWidth: 1)
                     }
                 }
@@ -255,7 +248,7 @@ struct ContentView: View {
     }
 
     private func originalDimension(width: Bool) -> String {
-        guard let size = model.selectedPixelSize else { return "读取中" }
+        guard let size = model.selectedPixelSize else { return model.previewLoading ? "读取中" : "不可用" }
         return String(Int(width ? size.width : size.height))
     }
 

@@ -107,7 +107,7 @@ final class AppModel {
         if width { next.width = value } else { next.height = value }
         if value.isEmpty { next.width = ""; next.height = "" }
         else if let source = selectedPixelSize,
-                let number = Int(value), (1...16383).contains(number) {
+                let number = try? ImageSizing.dimension(value) {
             if width { next.height = String(max(1, Int((Double(number) * source.height / source.width).rounded()))) }
             else { next.width = String(max(1, Int((Double(number) * source.width / source.height).rounded()))) }
         }
@@ -117,9 +117,9 @@ final class AppModel {
 
     private func synchronizeDimensions(width: Int, height: Int) {
         var next = settings
-        if lastEditedWidth, let w = Int(next.width), (1...16383).contains(w) {
+        if lastEditedWidth, let w = try? ImageSizing.dimension(next.width) {
             next.height = String(max(1, Int((Double(w) * Double(height) / Double(width)).rounded())))
-        } else if !lastEditedWidth, let h = Int(next.height), (1...16383).contains(h) {
+        } else if !lastEditedWidth, let h = try? ImageSizing.dimension(next.height) {
             next.width = String(max(1, Int((Double(h) * Double(width) / Double(height)).rounded())))
         }
         if next != settings { settings = next }
