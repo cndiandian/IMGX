@@ -1,84 +1,273 @@
 # IMGX
 
-面向 Apple Silicon、macOS 26+ 的原生图片转换与压缩工具。使用 SwiftUI 与 AppKit，图片仅在本机处理。
+为 Mac 打造的本地图片压缩、格式转换与 PDF 转图片工具。
 
-## 使用
+把图片、PDF 或整个文件夹拖进窗口，调整格式和尺寸，对比画质后批量导出。文件处理在本机完成，保留源文件。
 
-Apple Silicon、macOS 26+ 可以通过 Homebrew 安装：
+**Apple Silicon · macOS 26+ · 原生 macOS 应用**
+
+[下载最新版](https://github.com/cndiandian/IMGX/releases/latest) · [安装说明](#下载与安装) · [快速上手](#快速上手) · [反馈问题](https://github.com/cndiandian/IMGX/issues)
+
+## 界面预览
+
+![IMGX 文件列表、原图与转换结果滑杆对比，以及格式和尺寸设置](docs/images/preview.jpg)
+
+滑动分隔线检查压缩前后的细节，也可以切换为分屏对比，同时查看实际编码后的文件大小。
+
+## 主要功能
+
+- **图片压缩与转换**：批量输出 WebP、JPEG、PNG，支持质量调整和 WebP 无损模式。
+- **真实效果预览**：通过滑杆或分屏对比原图与编码结果，在导出前确认画质和体积。
+- **调整图片尺寸**：使用原尺寸、50%、25% 或自定义尺寸，保持图片比例。
+- **整文件夹处理**：递归导入图片和 PDF，导出时保留来源文件夹及子目录结构。
+- **PDF 按页导出**：每页独立预览，按页码生成图片，沿用当前格式和尺寸设置。
+- **保留源文件**：不覆盖原图或 PDF，遇到已有输出文件自动添加编号。
+- **快速找到结果**：导出完成后，点击保存路径或“打开目录”即可在 Finder 中查看。
+
+功能说明对应当前仓库代码；下载版本所包含的功能请以 [Release 说明](https://github.com/cndiandian/IMGX/releases) 为准。
+
+## 下载与安装
+
+需要 **搭载 Apple 芯片的 Mac（M 系列）** 和 **macOS 26 或更高版本**。当前不提供 Intel 版本。
+
+### 下载安装包
+
+1. 前往 [GitHub Releases](https://github.com/cndiandian/IMGX/releases/latest)。
+2. 在 Assets 中下载以 `.dmg` 结尾的安装包。
+3. 打开 DMG，将 **IMGX** 拖入 **Applications（应用程序）**。
+4. 从“应用程序”中打开 IMGX。
+
+### 通过 Homebrew 安装
+
+已安装 Homebrew 的用户，也可以在终端执行：
 
 ```sh
 brew install --cask cndiandian/tap/imgx
 ```
 
-已安装后执行 `brew update && brew upgrade --cask imgx` 更新。
-若 Homebrew 提示 Cask 来自未信任的 tap，先执行 `brew trust --cask cndiandian/tap/imgx`，再重试安装。
+如果 Homebrew 提示该 Cask 来自未信任的 tap，执行以下命令后重试：
 
-构建后打开 `dist/IMGX.app`。选择或拖入 JPG、JPEG、PNG、WebP、HEIC 静态图片，调整输出格式、质量及尺寸，通过滑杆或分屏检查真实编码结果，再选择文件夹导出全部图片。输出支持 WebP、JPEG、PNG；同名文件自动编号，保留原文件。
+```sh
+brew trust --cask cndiandian/tap/imgx
+```
 
-支持直接拖入或选择文件夹，递归导入其中的图片和 PDF。导出保留拖入文件夹本身及子目录，例如 `相册/旅行/a.jpg` 导出为 `输出目录/相册/旅行/a.webp`；单独导入的图片放在输出根目录。多个同名根文件夹自动编号区分，同一图片去重并保留首次导入的层级。侧栏显示图片所属目录。
+## 快速上手
 
-PDF 可以直接选择、拖入或随文件夹导入，每页作为独立项目预览并导出，命名为 `文档名-page-001.webp`、`文档名-page-002.webp` 等，仍保留来源目录层级。默认按页面裁切区域和旋转方向以 144 DPI、白色背景渲染，使用当前输出格式、质量及尺寸设置；每次只渲染一页。损坏、空文档及未解锁的加密 PDF 提示无法读取，不影响其他文件。超出图片尺寸或像素上限的页面在预览和导出时报告失败。
+1. **添加文件**：点击“选择图片”，或将图片、PDF、文件夹拖入窗口；可以一次添加多个。
+2. **调整输出**：选择 WebP、JPEG 或 PNG，按需要调整质量、尺寸；更多选项在“更多设置”中。
+3. **检查画质**：在左侧选择图片或 PDF 页面，使用滑杆、分屏、缩放和平移查看细节。
+4. **导出结果**：点击“导出 N 张图片”，选择保存目录。完成后点击提示中的目录地址或“打开目录”查看结果。
 
-文件夹扫描在后台执行，可取消；扫描期间暂不可导出。隐藏项、软件包及符号链接会跳过，空目录及非图片文件不会复制到输出目录。已有输出文件继续追加编号，原图保持不变。
+导出会处理列表中的全部项目；当前选中项仅决定预览内容。开始导出后，本批次使用当时的参数设置。
 
-导出完成提示中的目录地址可直接点击，也可点击地址后的“打开目录”按钮，在 Finder 中打开本次导出的目录。长路径居中省略，悬停可查看完整地址。
+### 导出文件夹
 
-- ⌘O 添加图片，⌘Return 导出全部，⌘0 适应窗口。
-- 侧栏上下键切图；非编辑状态下 Delete 移除选中。
-- 画布滚轮/捏合缩放、拖动平移、双击复位；获得焦点后支持方向键、`+`/`-`、`0`、`[`/`]`。
-- 100% 表示适应窗口的基准比例，不是像素一一对应。
+直接添加文件夹时，会保留它本身及内部层级。例如：
 
-在“IMGX → 关于 IMGX”中查看当前版本、打开项目主页或检测更新。发现 GitHub 新的正式版本后，会自动下载并校验 DMG，再打开安装镜像；将 IMGX 拖入 Applications 完成更新。安装镜像保存在“下载/IMGX”的独立目录中。检测和下载时按钮切换为“取消”。
+```text
+导入：相册/旅行/照片.jpg
+导出：所选目录/相册/旅行/照片.webp
+```
+
+单独添加的图片放在所选目录的根目录。不同位置的同名根文件夹自动编号区分；同一图片重复添加时，保留首次导入时的层级。
+
+文件夹读取在后台进行，可点击“取消”；读取期间暂不可导出。隐藏项、软件包和符号链接会跳过，只创建成功导出图片所需的目录，不复制其他文件或空目录。
+
+### 导出 PDF
+
+PDF 导入后按页显示，每页都可以独立预览或从列表移除。导出文件按页码命名：
+
+```text
+说明.pdf → 说明-page-001.webp
+           说明-page-002.webp
+           …
+```
+
+默认以 **144 DPI、白色背景**渲染，遵循页面裁切区域和旋转方向；尺寸选项中的“原尺寸”对应此渲染结果。更换输出格式或尺寸后，每页使用同一组设置。随文件夹添加的 PDF 同样保留来源目录层级。
+
+## 支持的格式与限制
+
+| 类型 | 支持内容 |
+| --- | --- |
+| 图片输入 | JPG、JPEG、PNG、WebP、HEIC 静态图片 |
+| 文档输入 | PDF，按页转换为图片 |
+| 图片输出 | WebP、JPEG（`.jpg`）、PNG |
+| 透明背景 | PNG、WebP 保留透明；JPEG 将透明区域铺为白色 |
+| 尺寸上限 | 输出每边不超过 16,383 像素，总像素不超过 1 亿 |
+
+目前不支持保留动态图像，不承诺完整保留 EXIF、ICC、HDR 等信息。需要保留这些信息时，请保管好源文件。列表和设置不会跨应用启动保存。
+
+PDF 渲染后的页面也受尺寸和像素上限约束。未解锁的加密 PDF、损坏或没有页面的文档无法导入；单页预览或导出失败会提示原因，不影响其他可处理项目。
+
+## 更新与常见问题
+
+### 如何更新？
+
+在菜单栏打开 **IMGX → 关于 IMGX → 检测更新**。检测到 GitHub 上新的正式版本后，应用会下载并校验 DMG，再打开安装镜像；将新版本拖入“应用程序”完成更新。下载和检测过程中可取消，安装包保存在“下载/IMGX”的独立目录中。
+
+使用 Homebrew 安装的用户可以执行：
+
+```sh
+brew update
+brew upgrade --cask imgx
+```
+
+### 图片会被上传吗？
+
+不会。图片与 PDF 在本机读取、转换和导出。主动检测更新及下载新版本时会访问 GitHub。
+
+### 会覆盖原文件吗？
+
+不会。已有同名文件时自动添加 `-1`、`-2` 等编号。从列表移除或清空列表，也不会删除磁盘上的源文件。
+
+### 为什么文件不一定更小？
+
+文件大小取决于图片内容、输入输出格式、尺寸和质量。转换格式或使用无损模式可能使文件变大；可以先比较预览中的编码大小，再决定是否降低质量或缩小尺寸。
+
+### 为什么 PDF 没有显示压缩百分比？
+
+一份 PDF 可以包含多页，文档大小不能直接作为单页图片的比较基准。PDF 预览展示当前页的输出大小，侧栏标记整份 PDF 的原文件大小。
+
+### 预览中的 100% 是什么意思？
+
+它表示“适应窗口”后的基准比例，并非一个屏幕像素对应一个图片像素。可以滚轮或捏合缩放、拖动平移，双击画布或点击“适应窗口”复位。
+
+## 快捷键
+
+| 操作 | 快捷键 |
+| --- | --- |
+| 添加图片、PDF 或文件夹 | `⌘O` |
+| 导出列表全部项目 | `⌘Return` |
+| 适应窗口 | `⌘0` |
+| 在侧栏切换选中项 | `↑` / `↓` |
+| 从列表移除选中项 | `Delete`（非文字编辑状态） |
+
+画布获得键盘焦点后，可用方向键平移，`+` / `-` 缩放，`0` 复位，`[` / `]` 调整对比滑杆。
+
+## 反馈与贡献
+
+遇到问题或有功能建议，欢迎提交 [Issue](https://github.com/cndiandian/IMGX/issues)。反馈时请附上 macOS 版本、IMGX 版本、复现步骤及相关截图；如需提供样本文件，请使用可公开分享的内容。
+
+欢迎通过 Pull Request 参与改进。修改代码前可以先通过 Issue 讨论方案；提交前请运行下方的统一检查，并说明修改内容及验证结果。
 
 ## 开发与验证
 
-需要 Xcode 26+ 与 Swift 6.2+。在项目目录执行：
+以下内容面向希望自行构建、修改或发布 IMGX 的开发者。日常使用直接下载安装包即可。
+
+### 本地构建
+
+需要 Apple Silicon Mac、macOS 26+、完整 Xcode 26+ 与 Swift 6.2+。项目使用 SwiftUI 与 AppKit，支持通过 Swift Package Manager 构建，也可用 Xcode 打开 `Package.swift`。
 
 ```sh
+git clone https://github.com/cndiandian/IMGX.git
+cd IMGX
 swift build
 bash Scripts/check.sh
 bash Scripts/build-app.sh
 open dist/IMGX.app
 ```
 
-也可使用 Xcode 打开 `Package.swift`。WebP 1.6.0 和 libsharpyuv 已静态入库，运行和构建无需 Homebrew；库当前仅提供 arm64 架构。第三方许可位于 `Vendor/WebP`，打包时也复制至应用 Resources。
+`build-app.sh` 默认生成 Release 应用并使用本地临时签名，供本机开发验证；这不等于完成了正式分发签名和公证。应用位于 `dist/IMGX.app`。
 
-`bash Scripts/build-app.sh debug` 生成调试应用。仅 Debug 构建支持 `IMGX_DEV_APPEARANCE=dark/light`、`IMGX_DEV_SMALL_WINDOW=1` 和以换行分隔路径的 `IMGX_DEV_INPUTS`，用于应用内外观及文件导入验收，不修改系统设置。Release 构建不启用这些辅助入口。
+WebP 1.6.0 和 libsharpyuv 的静态库及头文件已随仓库提供，仅含 arm64 架构。构建及运行不依赖 Homebrew 动态库；第三方许可会一并复制到应用 Resources。
 
-## 正式签名与公证
+<details>
+<summary>调试选项、测试与验收范围</summary>
 
-需要 Apple Developer Program 账户、完整 Xcode，以及已安装到钥匙串的 **Developer ID Application** 证书和对应私钥。该流程用于 Mac App Store 之外分发。
+```sh
+bash Scripts/build-app.sh debug
+bash Scripts/check.sh
+```
 
-先查看可用签名身份，并将公证凭据保存到钥匙串（一次即可）：
+仅 Debug 构建支持以下环境变量，Release 不启用这些辅助入口，也不会因此改变系统设置：
+
+| 变量 | 用途 |
+| --- | --- |
+| `IMGX_DEV_APPEARANCE=dark` / `light` | 指定应用内外观 |
+| `IMGX_DEV_SMALL_WINDOW=1` | 检查小窗口布局 |
+| `IMGX_DEV_INPUTS` | 以换行分隔的文件路径，启动时导入 |
+
+统一检查包含 30 项 Swift 测试及 25 项离线脚本测试，覆盖编码、透明通道、EXIF 方向、尺寸规则、导入去重、文件夹层级、PDF 分页与旋转、取消竞态、预览与导出一致性、文件保护、无障碍画布操作及更新校验。脚本测试模拟签名和 Apple 工具，不读取真实凭据或上传应用。
+
+也可以单独执行脚本测试：
+
+```sh
+python3 Scripts/test-build-app.py
+python3 Scripts/test-homebrew-tap.py
+python3 Scripts/test-publish-release.py
+```
+
+主分支推送及面向 main 的 PR 自动运行统一检查，不加载签名或公证 Secrets；tag 发布复用相同检查入口。
+
+本机已完成 Developer ID 签名、应用与 DMG 的 Apple 公证、票据装订和 Gatekeeper 验证；未在另一台 Mac 上完成安装验收。自动化通过不代表所有窗口、VoiceOver、复杂 PDF 和大文件压力场景均已验证。
+
+</details>
+
+## 签名、公证与自动发布
+
+<details>
+<summary>本地 Developer ID 签名、Apple 公证与安装包生成</summary>
+
+正式分发需要 Apple Developer Program 账户、完整 Xcode，以及钥匙串内带私钥的 **Developer ID Application** 证书。以下命令在项目根目录执行。
+
+**方式一：使用 App Store Connect API Key**
+
+首次配置时复制示例文件，已有配置请直接使用：
+
+```sh
+cp Scripts/release.env.example .release.env
+```
+
+编辑 `.release.env`，填写证书名称或 SHA-1、`.p8` 文件路径、Key ID 和团队密钥的 Issuer ID。个人 API Key 不设置 Issuer ID。按需调整 `APP_VERSION` 与 `BUILD_NUMBER`（脚本默认 `0.1.0` / `1`）。
+
+仅编译并正式签名，不上传公证：
+
+```sh
+source .release.env
+bash Scripts/build-app.sh release --sign "$CODE_SIGN_IDENTITY"
+codesign --verify --deep --strict --verbose=2 dist/IMGX.app
+```
+
+生成正式签名且经过公证的应用、ZIP 和 DMG：
+
+```sh
+source .release.env
+bash Scripts/release.sh
+```
+
+脚本依次编译、签名、上传 Apple 公证、装订并验证票据，对应用和 DMG 分别执行公证。它不会自动创建 GitHub Release 或更新 Homebrew。
+
+**方式二：使用钥匙串公证凭据**
 
 ```sh
 security find-identity -v -p codesigning
 xcrun notarytool store-credentials IMGX --apple-id '你的 Apple ID' --team-id '你的 Team ID'
 ```
 
-第二条命令会交互式提示输入 App 专用密码；不要使用 Apple ID 登录密码。也可使用 App Store Connect API Key 创建同名钥匙串凭据，详见 `xcrun notarytool store-credentials --help`。不需要把密码或私钥写入项目。
-
-仅编译并正式签名：
-
-```sh
-bash Scripts/build-app.sh release --sign 'Developer ID Application: 你的姓名 (TEAMID)'
-```
-
-一键编译、签名、上传 Apple 公证、装订并验证票据：
+第二条命令交互式提示输入 App 专用密码；不要填写 Apple ID 登录密码。也可用 API Key 保存钥匙串凭据，参数见 `xcrun notarytool store-credentials --help`。
 
 ```sh
 bash Scripts/build-app.sh release \
   --sign 'Developer ID Application: 你的姓名 (TEAMID)' \
-  --notarize --profile IMGX
+  --notarize --profile IMGX --dmg
 ```
 
-`--sign` 也支持证书 SHA-1，以区分同名证书。可通过环境变量 `IMGX_SIGN_IDENTITY`（或参考项目使用的 `CODE_SIGN_IDENTITY`）、`IMGX_NOTARY_PROFILE` 提供默认值。没有签名配置时，原有命令继续使用本地临时签名；公证模式强制要求正式签名和 Release 构建。
+`--sign` 支持证书名称或 SHA-1；默认值可由 `IMGX_SIGN_IDENTITY` / `CODE_SIGN_IDENTITY` 提供，钥匙串凭据名称可由 `IMGX_NOTARY_PROFILE` 提供。API Key 与钥匙串凭据两种认证方式不可同时配置；使用方式二时，应在未加载 API Key 环境变量的终端中执行。
 
-签名后的应用位于 `dist/IMGX.app`。每次公证在 `dist/notarization.XXXXXX/` 中独立保存结果 `app-result.json` 和下载的日志 `app-log.json`；只有公证状态为 `Accepted` 且票据装订、签名、Gatekeeper 检查均通过后，才生成可分发的 **`IMGX-v0.1.0.zip`** 及 SHA-256 校验文件。`IMGX-upload.zip` 为提交给 Apple 的中间文件。
+**产物与故障排查**
 
-参照 PodLilt 项目增加 `Scripts/release.sh`：支持同名 API Key 环境变量，额外构建、签名、公证并装订 DMG（含 Applications 快捷方式）。版本使用 `APP_VERSION` 和 `BUILD_NUMBER`，默认 `0.1.0` / `1`。具体操作见 [发布步骤](docs/RELEASING.md)。
+应用输出至 `dist/IMGX.app`。每次公证在 `dist/notarization.XXXXXX/` 下保存产物和日志：
 
-默认等待 30 分钟，可用 `--timeout 60m` 调整。超时或网络失败会返回失败状态，Apple 端可能仍继续处理；保留结果目录和提交 ID，可继续查询：
+| 文件 | 说明 |
+| --- | --- |
+| `IMGX-v版本号.zip`、`.zip.sha256` | 经验证的应用压缩包及校验文件 |
+| `IMGX-v版本号.dmg`、`.dmg.sha256` | 使用 `--dmg` 或 `release.sh` 生成的安装镜像及校验文件 |
+| `app-result.json`、`app-log.json` | 应用公证结果与诊断日志 |
+| `dmg-result.json`、`dmg-log.json` | DMG 公证结果与诊断日志 |
+
+只有公证为 `Accepted`、票据及签名、Gatekeeper 检查通过后，才将对应产物视为可分发文件。`IMGX-upload.zip` 是上传中间文件。
+
+默认每次等待公证 30 分钟，可用 `--timeout 60m` 调整。票据服务临时失败时最多尝试 4 次。超时不代表 Apple 已取消处理；保留提交 ID，使用相同凭据查询：
 
 ```sh
 xcrun notarytool info '提交 ID' --keychain-profile IMGX
@@ -86,24 +275,89 @@ xcrun notarytool wait '提交 ID' --keychain-profile IMGX --timeout 60m
 xcrun notarytool log '提交 ID' --keychain-profile IMGX '日志文件.json'
 ```
 
-若稍后确认通过，可对**同一次构建且未被修改**的应用执行 `xcrun stapler staple dist/IMGX.app`、`xcrun stapler validate dist/IMGX.app` 和 `spctl --assess --type execute --verbose=2 dist/IMGX.app`，再重新打 ZIP；或重新执行完整脚本。流程依据 [Apple 公证文档](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
+API Key 方式改用 `--key`、`--key-id` 和团队密钥所需的 `--issuer` 参数。不要将未通过验证的中间产物当作最终安装包。
 
-发布脚本的离线流程测试：`python3 Scripts/test-build-app.py`。测试模拟签名及 Apple 工具，覆盖默认临时签名、公证通过、API Key 与 DMG、版本号、公证拒绝/超时、装订失败和参数校验，不会读取凭据或上传应用。
+如需手动恢复，应仅对同一次构建且未被修改的应用装订和验证，再重新生成压缩包；也可重新执行完整发布流程：
 
-## GitHub 自动发布
+```sh
+xcrun stapler staple dist/IMGX.app
+xcrun stapler validate dist/IMGX.app
+spctl --assess --type execute --verbose=2 dist/IMGX.app
+```
 
-推送 `v0.1.0` 格式的 tag 后，GitHub Actions 自动运行测试、编译、正式签名、公证并创建带 ZIP / DMG 和校验文件的 Release。首次需在仓库配置五项 Secrets，详细步骤见 [GitHub 发布配置指南](docs/GITHUB_RELEASE.md)。
+`.release.env`、`.p8` 和 `.p12` 已加入 Git 忽略规则；不要将密码或私钥提交到仓库。Apple 流程参考：[自定义公证工作流](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
 
-Release 成功后自动同步 `cndiandian/homebrew-tap` 中的 IMGX Cask，使用发布 DMG 的精确 SHA-256。需额外设置 `HOMEBREW_TAP_TOKEN`，仅授权 tap 仓库的 Contents 读写权限，配置步骤见同一指南。
+</details>
 
-## 验收与边界
+<details>
+<summary>GitHub Actions 发布与 Homebrew 自动同步</summary>
 
-当前 30 项 Swift 自动化测试覆盖编码、透明通道、EXIF 方向、尺寸规则、导入管理、文件夹层级与重名、PDF 分页渲染与导出、拖拽数据解析、扫描取消竞态、异步预览、导出快照、预览/导出一致性、失败继续、排他文件保护、画布无障碍操作，以及更新版本比较、Release 来源、校验文件、下载完整性和取消行为。Apple 人机交互检查见 [HIG 检查报告](docs/hig-audit/REPORT.md)。窗口实操及未覆盖事项见 [开发与验收记录](docs/IMPLEMENTATION.md)。
+发布工作流为 `.github/workflows/release.yml`。推送 `v主版本.次版本.修订版本` 格式的 tag 后，工作流测试、编译、签名、公证，再创建 GitHub Release，发布 ZIP、DMG 和对应 SHA-256 文件。普通分支推送及仅在本地创建 tag 不会触发发布，不接受带 `-beta` 等后缀的 tag。
 
-全仓库结构审查及整理见 [代码审查记录](docs/CODE_REVIEW.md)。构建与发布脚本另有 25 项离线测试，包含公证失败、tap 并发更新，以及草稿发布中断恢复和已发布附件保护。
+**配置签名与公证 Secrets**
 
-`bash Scripts/check.sh` 统一执行 Swift 和脚本回归测试。主分支推送及面向 main 的 PR 自动运行同一检查，不需要签名或公证凭据；tag 发布沿用相同验证入口。
+在 [仓库 Actions Secrets](https://github.com/cndiandian/IMGX/settings/secrets/actions) 添加以下五项：
 
-默认构建使用临时签名，仅面向本地开发。已完成本机 Developer ID 正式签名、应用与 DMG 的真实 Apple 公证、票据装订及 Gatekeeper 验证；尚未上架或在另一台 Mac 上验收。不支持动图保留，不承诺 EXIF、ICC、HDR 等信息完整保留。列表和设置不跨启动保存。
+| Secret | 内容 |
+| --- | --- |
+| `APPLE_CERTIFICATE_P12_BASE64` | 带私钥的 Developer ID Application 证书 P12 的 Base64 |
+| `APPLE_CERTIFICATE_PASSWORD` | P12 导出密码 |
+| `APP_STORE_CONNECT_API_KEY_BASE64` | App Store Connect `.p8` 文件的 Base64 |
+| `APP_STORE_CONNECT_API_KEY_ID` | 对应 Key ID |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | 对应团队密钥的 Issuer ID |
 
-[原始 PRD](docs/PRD.md) 中的旧代码基线与已有验证属于历史描述；本仓库从空目录建立，完成情况以本仓库验收记录为准。
+在“钥匙串访问 → 我的证书”中，选择 Developer ID Application 证书及其私钥，导出为 `.p12` 并设置密码；仅导出 `.cer` 不能用于签名。GitHub Secrets 的旧值无法读回，需要保留原始文件和配置。
+
+可用以下命令把 Base64 复制到剪贴板，再粘贴到对应 Secret：
+
+```sh
+base64 -i '/路径/DeveloperID.p12' | tr -d '\n' | pbcopy
+base64 -i '/路径/AuthKey_KEYID.p8' | tr -d '\n' | pbcopy
+```
+
+将密码和私钥填写到 Secrets，不要写入 YAML、Actions Variables 或 Issue。runner 使用临时钥匙串，任务结束或失败时清理签名材料；编译 job 仅有代码读取权限，独立发布 job 才获得当前仓库的内容写入权限。
+
+**配置 Homebrew 同步**
+
+Release 发布成功后，独立 job 下载已发布 DMG 并验证 SHA-256，更新 `cndiandian/homebrew-tap` 默认分支的 `Casks/imgx.rb`。需额外添加第六项 Secret：`HOMEBREW_TAP_TOKEN`。
+
+1. 打开 [Fine-grained token 创建页面](https://github.com/settings/personal-access-tokens/new)，选择有权管理 tap 的 Resource owner，并设置到期时间。
+2. Repository access 选择 **Only select repositories → homebrew-tap**。
+3. Repository permissions 中仅将 **Contents** 设置为 **Read and write**，Metadata 保留默认读取权限。
+4. 将生成的 token 保存到 IMGX 仓库的 `HOMEBREW_TAP_TOKEN` Secret，不要写入代码。
+
+当前工作流的 `GITHUB_TOKEN` 不能直接用于写入另一个 tap 仓库。若 fork 项目，需要同步修改工作流和同步脚本中的发布仓库、tap 地址及权限配置。
+
+**创建发布版本**
+
+以下是维护者手动发布时的命令示例，执行前应确认提交、版本号与 Secrets 已准备完毕，并将示例版本换成未发布的新版本：
+
+```sh
+git push origin main
+git tag -a v0.2.0 -m '发布 IMGX 0.2.0'
+git push origin v0.2.0
+```
+
+版本号从 tag 写入应用，构建号使用 Actions 的 run number。不要删除或强制移动已发布的 tag。
+
+**检查结果与失败恢复**
+
+在 [Actions](https://github.com/cndiandian/IMGX/actions) 查看编译、公证、发布及 tap 更新结果。失败时优先选择 **Re-run failed jobs**；公证日志与分发产物 Artifact 默认保留 14 天。
+
+发布 job 先创建或继续草稿，上传并校验四个附件的摘要后公开。网络中断后可继续同一草稿；已发布且产物完全一致时跳过重复发布，产物不一致时停止，不覆盖公开附件。避免全部重跑后重新签名造成产物变化。
+
+Homebrew 内容相同时不重复提交；tap 中 IMGX 版本高于本次 tag 时跳过，防止旧任务将其降级；内容 SHA 冲突会重新读取版本后重试。只有 tap 更新失败时，GitHub Release 仍有效，修复 token 后重跑该失败 job 即可。
+
+可离线预览将生成的 Cask，不写入 GitHub：
+
+```sh
+TAP_DRY_RUN=1 python3 Scripts/update-homebrew-tap.py 0.2.0 /路径/IMGX-v0.2.0.dmg
+```
+
+</details>
+
+## 许可证与致谢
+
+IMGX 采用 [MIT 许可证](LICENSE)。使用、修改与分发时，请保留许可证中的版权及许可声明。
+
+感谢 [libwebp](https://chromium.googlesource.com/webm/libwebp/) 提供 WebP 编解码能力。仓库包含的 WebP 与 libsharpyuv 遵循其各自适用的第三方许可，见 [Vendor/WebP/LICENSE](Vendor/WebP/LICENSE) 与 [AUTHORS](Vendor/WebP/AUTHORS)，不因 IMGX 的 MIT 许可证而改变。
