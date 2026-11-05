@@ -65,7 +65,6 @@ enum L10nKey: String, CaseIterable, Sendable {
     case size
     case chooseDestination
     case exportHelp
-    case emptyTitle
     case emptySubtitle
     case chooseImages
     case dropHint

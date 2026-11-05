@@ -66,7 +66,6 @@ enum SimplifiedChineseTranslations {
         .size: "尺寸",
         .chooseDestination: "选择保存位置",
         .exportHelp: "选择文件夹后导出全部图片，保留导入的文件夹层级（⌘Return）",
-        .emptyTitle: "图片压缩与转换",
         .emptySubtitle: "本地处理 · 多格式输出 · 保留原文件",
         .chooseImages: "选择图片",
         .dropHint: "或将图片、PDF、文件夹拖到窗口中",

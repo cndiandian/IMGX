@@ -199,7 +199,7 @@ struct ContentView: View {
     private var emptyState: some View {
         VStack(spacing: 0) {
             BrandIcon(size: 84).padding(.bottom, 24)
-            Text(L10n.text(.emptyTitle)).font(.system(size: 27, weight: .semibold))
+            Text("IMGX").font(.system(size: 27, weight: .semibold))
             Text(L10n.text(.emptySubtitle))
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
             Button(L10n.text(.chooseImages)) { model.chooseImages() }

@@ -66,7 +66,6 @@ enum EnglishTranslations {
         .size: "Size",
         .chooseDestination: "Choose Destination",
         .exportHelp: "Export all images and preserve imported folder structure (⌘Return)",
-        .emptyTitle: "Compress and Convert Images",
         .emptySubtitle: "Local processing · Multiple formats · Originals preserved",
         .chooseImages: "Choose Images",
         .dropHint: "Or drop images, PDFs or folders here",
