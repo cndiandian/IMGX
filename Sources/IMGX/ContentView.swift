@@ -337,11 +337,34 @@ struct ContentView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
+    private func openExportDirectory(_ directory: URL) {
+        if !NSWorkspace.shared.open(directory) {
+            model.notify("无法打开导出目录，请确认目录仍然存在。")
+        }
+    }
+
     @ViewBuilder private var toast: some View {
         if let message = model.toast, !(advanced && model.dimensionError != nil && message.kind == .previewError) {
             HStack(spacing: 12) {
                 Image(systemName: message.kind == .previewError ? "exclamationmark.triangle" : "info.circle")
-                Text(message.text).font(.system(size: 12)).textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(message.text).textSelection(.enabled)
+                    if let directory = message.exportDirectory {
+                        HStack(spacing: 12) {
+                            Text("保存至").foregroundStyle(.secondary).fixedSize()
+                            Button { openExportDirectory(directory) } label: {
+                                Text(directory.path).underline()
+                                    .lineLimit(1).truncationMode(.middle)
+                            }
+                            .buttonStyle(.plain).focusEffectDisabled()
+                            .accessibilityLabel("打开导出目录：\(directory.path)")
+                            .help(directory.path)
+                            Button("打开目录") { openExportDirectory(directory) }
+                                .buttonStyle(.bordered).focusEffectDisabled().fixedSize()
+                        }
+                    }
+                }
+                .font(.system(size: 12))
                 Button { model.dismissToast() } label: {
                     Image(systemName: "xmark").frame(width: 32, height: 32)
                 }

@@ -45,6 +45,7 @@ struct ToastMessage: Identifiable {
     let id = UUID()
     let text: String
     let kind: Kind
+    var exportDirectory: URL? = nil
 }
 
 @MainActor @Observable
@@ -159,12 +160,12 @@ final class AppModel {
         if next != settings { settings = next }
     }
 
-    func notify(_ text: String, kind: ToastMessage.Kind = .notice, persistent: Bool = false) {
+    func notify(_ text: String, kind: ToastMessage.Kind = .notice, persistent: Bool = false, exportDirectory: URL? = nil) {
         toastTask?.cancel()
-        let message = ToastMessage(text: text, kind: kind)
+        let message = ToastMessage(text: text, kind: kind, exportDirectory: exportDirectory)
         toast = message
         NSAccessibility.post(element: NSApplication.shared, notification: .announcementRequested,
-                             userInfo: [.announcement: text, .priority: NSAccessibilityPriorityLevel.medium.rawValue])
+                             userInfo: [.announcement: text + (exportDirectory.map { "，保存至 " + $0.path } ?? ""), .priority: NSAccessibilityPriorityLevel.medium.rawValue])
         if !persistent {
             toastTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(5))
@@ -351,7 +352,8 @@ final class AppModel {
             }
             completedCount += 1
         }
-        notify("已导出 \(successes)/\(batch.count) 张图片，保存至 \(directory.path)" + (successes < batch.count ? "。失败原因可在文件列表查看。" : ""), kind: .export)
+        notify("已导出 \(successes)/\(batch.count) 张图片" + (successes < batch.count ? "。失败原因可在文件列表查看。" : ""),
+               kind: .export, exportDirectory: directory)
     }
 
     func moveSelection(_ delta: Int) {

@@ -31,6 +31,7 @@ import Foundation
     #expect(model.items[1].status.isFailure)
     if case .complete = model.items[2].status {} else { Issue.record("失败项后续图片未完成") }
     #expect(model.toast?.text.contains("2/3") == true)
+    #expect(model.toast?.exportDirectory == dir)
 }
 
 @Test func concurrentExportsUseExclusiveNames() async throws {
@@ -93,6 +94,9 @@ import Foundation
     while !model.isExporting && !task.isCancelled { await Task.yield(); if model.completedCount > 0 { break } }
     model.settings.format = .jpeg
     await task.value
+    #expect(model.toast?.exportDirectory == dir)
+    model.notify("普通提示")
+    #expect(model.toast?.exportDirectory == nil)
     for index in 0..<4 {
         #expect(FileManager.default.fileExists(atPath: dir.appendingPathComponent("input-\(index)-1.png").path))
         #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("input-\(index).jpg").path))
