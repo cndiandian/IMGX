@@ -66,6 +66,7 @@ enum JapaneseTranslations {
         .size: "サイズ",
         .chooseDestination: "保存先を選択",
         .exportHelp: "すべての画像をフォルダ構成を保持して書き出す（⌘Return）",
+        .productIntro: "画像圧縮・形式変換・PDF の画像化を、ひとつのアプリで。",
         .emptySubtitle: "ローカル処理 · 複数形式に対応 · 元ファイルを保持",
         .chooseImages: "画像を選択",
         .dropHint: "画像・PDF・フォルダをここにドロップ",

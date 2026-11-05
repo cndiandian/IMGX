@@ -200,6 +200,10 @@ struct ContentView: View {
         VStack(spacing: 0) {
             BrandIcon(size: 84).padding(.bottom, 24)
             Text("IMGX").font(.system(size: 27, weight: .semibold))
+            Text(L10n.text(.productIntro))
+                .font(.system(size: 16)).foregroundStyle(.secondary)
+                .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 24).padding(.top, 12)
             Text(L10n.text(.emptySubtitle))
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
             Button(L10n.text(.chooseImages)) { model.chooseImages() }
