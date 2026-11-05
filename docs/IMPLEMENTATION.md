@@ -273,3 +273,8 @@
 - 用户明确选择 MIT，新增项目根目录标准 LICENSE（Copyright 2026 cndiandian），README 末尾分别说明项目 MIT 许可和 WebP/libsharpyuv 的既有第三方许可，不改动第三方许可文件。
 - 文档验收：核对功能与当前代码、构建参数及 Actions Secret 名称；本地文件链接、内部章节锚点、3 个折叠区和代码块配对检查通过；全部 Shell 示例经 `bash -n` 静态语法检查通过，没有执行其中的发布或推送命令；JPEG 文件有效，`git diff --check` 通过。
 - 本次无应用代码和工作流变更，未重复执行已通过的应用回归测试或重新签名、公证。未在 GitHub 页面实操渲染 README；仅本地中文提交，不执行 push。
+
+## README 预览图使用 WebP（2026-11-05）
+
+- 按用户要求，将 README 的预览图引用改为 `docs/images/preview.webp`，直接采用工作区已有 WebP 文件，未重新编码或覆盖其内容。
+- 已查看图片，核对尺寸为 2000×1464、WebP 文件签名及引用路径有效，`git diff --check` 通过；无应用代码变更，未重复运行应用测试。本地中文提交，不执行 push。
