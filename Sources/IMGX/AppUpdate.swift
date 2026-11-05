@@ -30,15 +30,15 @@ enum UpdateError: LocalizedError, Equatable {
     case invalidVersion, invalidRelease, missingDMG, invalidDownload, checksumMismatch, http(Int), cannotOpen
     var errorDescription: String? {
         switch self {
-        case .invalidVersion: "无法识别当前版本号。"
-        case .invalidRelease: "GitHub Release 的版本信息无效。"
-        case .missingDMG: "新版本尚未提供完整的 DMG 安装文件，请稍后重试。"
-        case .invalidDownload: "下载文件的信息不完整，请重试。"
-        case .checksumMismatch: "下载文件校验失败，请重试。"
-        case .http(403), .http(429): "GitHub 请求暂时受限，请稍后重试。"
-        case .http(404): "尚未找到正式发布的版本。"
-        case .http(let code): "GitHub 请求失败（HTTP \(code)），请稍后重试。"
-        case .cannotOpen: "无法打开安装镜像，可在下载目录中手动打开。"
+        case .invalidVersion: L10n.text(.invalidVersion)
+        case .invalidRelease: L10n.text(.invalidRelease)
+        case .missingDMG: L10n.text(.missingDMG)
+        case .invalidDownload: L10n.text(.invalidDownload)
+        case .checksumMismatch: L10n.text(.checksumMismatch)
+        case .http(403), .http(429): L10n.text(.rateLimited)
+        case .http(404): L10n.text(.noRelease)
+        case .http(let code): L10n.text(.httpFailure, String(code))
+        case .cannotOpen: L10n.text(.cannotOpenDMG)
         }
     }
 }

@@ -7,34 +7,34 @@ struct AdvancedSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("更多设置").font(.headline)
+            Text(L10n.text(.moreSettings)).font(.headline)
             if model.settings.format == .webp {
-                Toggle("WebP 无损压缩", isOn: $model.settings.lossless)
+                Toggle(L10n.text(.webpLossless), isOn: $model.settings.lossless)
             }
-            Text(model.settings.format == .jpeg ? "JPEG 不支持透明，透明区域将铺白。" : "当前格式保留透明通道。")
+            Text(model.settings.format == .jpeg ? L10n.text(.jpegTransparency) : L10n.text(.keepTransparency))
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
-            Text("自定义尺寸").fontWeight(.medium)
+            Text(L10n.text(.customSize)).fontWeight(.medium)
             if let size = model.selectedPixelSize {
-                Text("原始尺寸：\(Int(size.width)) × \(Int(size.height)) px")
+                Text(L10n.text(.sourceDimensions, String(Int(size.width)), String(Int(size.height))))
                     .font(.caption).foregroundStyle(.secondary)
                     .monospacedDigit()
             }
             HStack(alignment: .top, spacing: 16) {
-                dimensionInput("宽度", width: true)
-                dimensionInput("高度", width: false)
+                dimensionInput(L10n.text(.width), width: true)
+                dimensionInput(L10n.text(.height), width: false)
             }
             if let error = model.dimensionError {
                 Label(error, systemImage: "exclamationmark.circle")
                     .font(.caption).foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel("尺寸错误：\(error)")
+                    .accessibilityLabel(L10n.text(.dimensionError, error))
             }
-            Label("按当前图片等比联动，批量处理保持各图比例。", systemImage: "link")
+            Label(L10n.text(.linkedDimensions), systemImage: "link")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text("正整数 1～16383；均留空时使用原尺寸。")
+            Text(L10n.text(.dimensionHint))
                 .font(.caption).foregroundStyle(.secondary)
-            HStack { Spacer(); Button("完成") { isPresented = false }.keyboardShortcut(.defaultAction) }
+            HStack { Spacer(); Button(L10n.text(.done)) { isPresented = false }.keyboardShortcut(.defaultAction) }
         }
         .padding(24).frame(width: 330)
         .disabled(model.isExporting)
@@ -42,8 +42,8 @@ struct AdvancedSettingsView: View {
 
     private func dimensionInput(_ title: String, width: Bool) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("\(title)（px）").font(.caption).foregroundStyle(.secondary)
-            DimensionField(title: title, placeholder: originalDimension(width: width), focusGroup: dimensionFocusGroup, validationMessage: ImageSizing.validationMessage(width ? model.settings.width : model.settings.height),
+            Text(L10n.text(.dimensionLabel, title)).font(.caption).foregroundStyle(.secondary)
+            DimensionField(title: title, isWidth: width, placeholder: originalDimension(width: width), focusGroup: dimensionFocusGroup, validationMessage: ImageSizing.validationMessage(width ? model.settings.width : model.settings.height),
                            text: Binding(get: { width ? model.settings.width : model.settings.height },
                                          set: { model.editDimension($0, width: width) }))
                 .frame(height: 24)
@@ -57,7 +57,7 @@ struct AdvancedSettingsView: View {
     }
 
     private func originalDimension(width: Bool) -> String {
-        guard let size = model.selectedPixelSize else { return model.previewLoading ? "读取中" : "不可用" }
+        guard let size = model.selectedPixelSize else { return model.previewLoading ? L10n.text(.reading) : L10n.text(.unavailable) }
         return String(Int(width ? size.width : size.height))
     }
 

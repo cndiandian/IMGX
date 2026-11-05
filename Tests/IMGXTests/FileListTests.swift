@@ -8,11 +8,13 @@ import Foundation
     defer { try? FileManager.default.removeItem(at: directory) }
     let urls = ["first.png", "second.JPG", "third.webp"].map { directory.appendingPathComponent($0) }
     for url in urls { try Data("broken image".utf8).write(to: url) }
+    let unsupported = directory.appendingPathComponent("unsupported.txt")
+    try Data("unsupported file".utf8).write(to: unsupported)
     let model = AppModel()
-    await model.add(urls + [urls[0], directory.appendingPathComponent("unsupported.txt")])
+    await model.add(urls + [urls[0], unsupported])
     #expect(model.items.count == 3)
     #expect(model.selected?.url == urls[0])
-    #expect(model.toast?.text.contains("1 个") == true)
+    #expect(model.toast?.text == L10n.text(.skippedItems, "1"))
     model.selectedID = model.items[1].id
     model.removeSelected()
     #expect(model.selected?.url == urls[2])

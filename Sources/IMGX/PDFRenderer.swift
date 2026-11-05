@@ -5,9 +5,9 @@ enum PDFError: LocalizedError {
     case unreadable, locked, invalidPage
     var errorDescription: String? {
         switch self {
-        case .unreadable: "无法读取 PDF，文件可能已损坏或没有页面。"
-        case .locked: "PDF 已加密，请先在本机解锁后重新导入。"
-        case .invalidPage: "无法读取 PDF 页面。"
+        case .unreadable: L10n.text(.pdfUnreadable)
+        case .locked: L10n.text(.pdfLocked)
+        case .invalidPage: L10n.text(.pdfInvalidPage)
         }
     }
 }

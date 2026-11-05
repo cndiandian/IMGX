@@ -27,25 +27,25 @@ struct ImageCommands: Commands {
     @FocusedValue(\.imageActions) private var actions
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("添加图片") { actions?.add() }
+            Button(L10n.text(.addImages)) { actions?.add() }
                 .keyboardShortcut("o").disabled(actions?.canAdd != true)
-            Button("导出全部图片") { actions?.export() }
+            Button(L10n.text(.exportAll)) { actions?.export() }
                 .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
         }
         CommandGroup(after: .pasteboard) {
             Divider()
-            Button("移除选中图片") { actions?.remove() }.disabled(actions?.canManageFiles != true)
-            Button("清空图片列表") { actions?.clear() }.disabled(actions?.canManageFiles != true)
+            Button(L10n.text(.removeImage)) { actions?.remove() }.disabled(actions?.canManageFiles != true)
+            Button(L10n.text(.clearImages)) { actions?.clear() }.disabled(actions?.canManageFiles != true)
         }
         CommandGroup(after: .toolbar) {
-            Picker("对比方式", selection: Binding(get: { actions?.comparison.wrappedValue ?? .slider },
+            Picker(L10n.text(.comparison), selection: Binding(get: { actions?.comparison.wrappedValue ?? .slider },
                                                 set: { actions?.comparison.wrappedValue = $0 })) {
-                ForEach(ComparisonMode.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(ComparisonMode.allCases) { Text($0.title).tag($0) }
             }.disabled(actions?.hasImages != true)
-            Button("适应窗口") { actions?.reset() }
+            Button(L10n.text(.fit)) { actions?.reset() }
                 .keyboardShortcut("0").disabled(actions?.hasImages != true)
             Divider()
-            Button("更多图像设置") { actions?.showAdvanced() }.disabled(actions?.canChangeSettings != true)
+            Button(L10n.text(.moreImageSettings)) { actions?.showAdvanced() }.disabled(actions?.canChangeSettings != true)
         }
     }
 }

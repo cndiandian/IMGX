@@ -15,7 +15,7 @@ struct ExportRequest: Sendable {
 
 enum ExportPathError: LocalizedError, Equatable {
     case invalidDirectory
-    var errorDescription: String? { "无法创建导出层级：目录名称无效、被文件占用或包含符号链接。" }
+    var errorDescription: String? { L10n.text(.invalidExportPath) }
 }
 
 enum ExportWriter {

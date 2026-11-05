@@ -8,16 +8,16 @@ struct AboutView: View {
             BrandIcon(size: 64)
             VStack(spacing: 6) {
                 Text("IMGX").font(.system(size: 24, weight: .semibold))
-                Text("版本 \(updater.version)（\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1")）")
+                Text(L10n.text(.version, updater.version, Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"))
                     .font(.callout).foregroundStyle(.secondary)
-                Text("本地图片压缩与格式转换").font(.callout).foregroundStyle(.secondary)
+                Text(L10n.text(.subtitle)).font(.callout).foregroundStyle(.secondary)
             }
             ProjectLink().fixedSize().frame(height: 20)
             Divider()
             VStack(spacing: 12) {
                 HStack(spacing: 10) {
                     if updater.isBusy { ProgressView().controlSize(.small) }
-                    Button(updater.isBusy ? "取消" : "检测更新") {
+                    Button(updater.isBusy ? L10n.text(.cancel) : L10n.text(.checkUpdates)) {
                         if updater.isBusy { updater.cancel() }
                         else { updater.check() }
                     }
@@ -29,7 +29,7 @@ struct AboutView: View {
             }
         }
         .padding(28)
-        .frame(width: 380)
+        .frame(width: 420)
         .onChange(of: updater.phase) { _, phase in
             guard !phase.message.isEmpty else { return }
             NSAccessibility.post(element: NSApplication.shared, notification: .announcementRequested,
@@ -43,7 +43,7 @@ struct AboutView: View {
             VStack(spacing: 8) {
                 Text(updater.phase.message)
                 if case .opened(_, let file) = updater.phase {
-                    Button("在访达中显示") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
+                    Button(L10n.text(.showInFinder)) { NSWorkspace.shared.activateFileViewerSelecting([file]) }
                         .buttonStyle(.borderless)
                 }
             }
@@ -63,7 +63,7 @@ private struct ProjectLink: NSViewRepresentable {
         button.attributedTitle = NSAttributedString(string: button.title, attributes: [
             .font: NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.linkColor
         ])
-        button.toolTip = "在浏览器中打开项目主页"
+        button.toolTip = L10n.text(.openProject)
         button.setAccessibilityLabel(button.title)
         return button
     }
@@ -82,7 +82,7 @@ struct AppInfoCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button("关于 IMGX") { openWindow(id: "about") }
+            Button(L10n.text(.about)) { openWindow(id: "about") }
         }
     }
 }

@@ -27,7 +27,15 @@ enum OutputFormat: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum SizePreset: String, CaseIterable, Identifiable, Sendable {
-    case original = "原尺寸", half = "50%", quarter = "25%", custom = "自定义"
+    case original, half, quarter, custom
+    var title: String {
+        switch self {
+        case .original: L10n.text(.originalSize)
+        case .half: "50%"
+        case .quarter: "25%"
+        case .custom: L10n.text(.custom)
+        }
+    }
     var id: Self { self }
 }
 

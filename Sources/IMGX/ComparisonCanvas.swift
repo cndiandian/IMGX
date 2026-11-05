@@ -2,7 +2,8 @@ import SwiftUI
 import AppKit
 
 enum ComparisonMode: String, CaseIterable, Identifiable {
-    case slider = "滑杆", split = "分屏"
+    case slider, split
+    var title: String { L10n.text(self == .slider ? .slider : .split) }
     var id: Self { self }
 }
 
@@ -53,15 +54,15 @@ final class ComparisonView: NSView {
         focusRingType = .none
         setAccessibilityElement(true)
         setAccessibilityRole(.image)
-        setAccessibilityLabel("原图与转换结果对比画布")
+        setAccessibilityLabel(L10n.text(.canvas))
         setAccessibilityCustomActions([
-            NSAccessibilityCustomAction(name: "放大预览", target: self, selector: #selector(accessibleZoomIn)),
-            NSAccessibilityCustomAction(name: "缩小预览", target: self, selector: #selector(accessibleZoomOut)),
-            NSAccessibilityCustomAction(name: "适应窗口", target: self, selector: #selector(accessibleReset)),
-            NSAccessibilityCustomAction(name: "增加原图可见范围", target: self, selector: #selector(accessibleRevealOriginal)),
-            NSAccessibilityCustomAction(name: "增加转换结果可见范围", target: self, selector: #selector(accessibleRevealOutput))
+            NSAccessibilityCustomAction(name: L10n.text(.zoomIn), target: self, selector: #selector(accessibleZoomIn)),
+            NSAccessibilityCustomAction(name: L10n.text(.zoomOut), target: self, selector: #selector(accessibleZoomOut)),
+            NSAccessibilityCustomAction(name: L10n.text(.fit), target: self, selector: #selector(accessibleReset)),
+            NSAccessibilityCustomAction(name: L10n.text(.revealOriginal), target: self, selector: #selector(accessibleRevealOriginal)),
+            NSAccessibilityCustomAction(name: L10n.text(.revealOutput), target: self, selector: #selector(accessibleRevealOutput))
         ])
-        setAccessibilityHelp("滚轮或捏合缩放，拖动平移，双击或 0 复位。方向键平移，+ 和 - 缩放，[ 和 ] 调整滑杆。")
+        setAccessibilityHelp(L10n.text(.canvasHelp))
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -113,8 +114,8 @@ final class ComparisonView: NSView {
             NSColor.separatorColor.setFill()
             NSRect(x: left.maxX, y: 0, width: 1, height: bounds.height).fill()
         }
-        setAccessibilityValue("适应窗口的 \(Int(zoom * 100))%，\(mode.rawValue)模式")
-        let badge = "\(Int(zoom * 100))% · 滚轮缩放 · 拖动平移 · 双击复位"
+        setAccessibilityValue(L10n.text(.canvasValue, String(Int(zoom * 100)), mode.title))
+        let badge = L10n.text(.canvasBadge, String(Int(zoom * 100)))
         let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]
         let size = (badge as NSString).size(withAttributes: attrs)
         let rect = NSRect(x: (bounds.width - size.width) / 2 - 12, y: bounds.height - 43, width: size.width + 24, height: 27)

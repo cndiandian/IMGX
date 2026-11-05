@@ -33,7 +33,7 @@ func pdfFixture(at url: URL, sizes: [CGSize] = [CGSize(width: 120, height: 80), 
     #expect(model.items.count == 2)
     #expect(model.items.map(\.pageNumber) == [1, 2])
     #expect(model.items.map(\.relativeDirectory) == [["资料", "子目录"], ["资料", "子目录"]])
-    #expect(model.items[1].displayName.contains("第 2 页"))
+    #expect(model.items[1].displayName == L10n.text(.pdfPageName, "说明.PDF", "2"))
     model.settings.format = .png
     model.settings.size = .half
     try await waitForPreview(model)
@@ -107,7 +107,7 @@ func pdfFixture(at url: URL, sizes: [CGSize] = [CGSize(width: 120, height: 80), 
     await model.add([broken, locked, good])
     #expect(model.items.count == 2)
     #expect(model.toast?.text.contains("broken.pdf") == true)
-    #expect(model.toast?.text.contains("已加密") == true)
+    #expect(model.toast?.text.contains(L10n.text(.pdfLocked)) == true)
     #expect(throws: PDFError.locked) { try PDFRenderer.render(url: locked, pageNumber: 1) }
     await model.export(to: directory)
     #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("good-page-001.webp").path))

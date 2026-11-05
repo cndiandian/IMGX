@@ -6,6 +6,8 @@
 
 **Apple Silicon · macOS 26+ · 原生 macOS 应用**
 
+支持 English、简体中文、繁體中文和日本語，启动时自动跟随系统首选语言；不支持的语言使用英语。更改系统或应用语言后，重新启动 IMGX 生效。
+
 [下载最新版](https://github.com/cndiandian/IMGX/releases/latest) · [安装说明](#下载与安装) · [快速上手](#快速上手) · [反馈问题](https://github.com/cndiandian/IMGX/issues)
 
 ## 界面预览
@@ -187,7 +189,7 @@ bash Scripts/check.sh
 | `IMGX_DEV_SMALL_WINDOW=1` | 检查小窗口布局 |
 | `IMGX_DEV_INPUTS` | 以换行分隔的文件路径，启动时导入 |
 
-统一检查包含 30 项 Swift 测试及 25 项离线脚本测试，覆盖编码、透明通道、EXIF 方向、尺寸规则、导入去重、文件夹层级、PDF 分页与旋转、取消竞态、预览与导出一致性、文件保护、无障碍画布操作及更新校验。脚本测试模拟签名和 Apple 工具，不读取真实凭据或上传应用。
+统一检查包含 33 项 Swift 测试及 25 项离线脚本测试，覆盖编码、透明通道、EXIF 方向、尺寸规则、导入去重、文件夹层级、PDF 分页与旋转、取消竞态、预览与导出一致性、文件保护、无障碍画布操作及更新校验。脚本测试模拟签名和 Apple 工具，不读取真实凭据或上传应用。
 
 也可以单独执行脚本测试：
 
@@ -202,6 +204,26 @@ python3 Scripts/test-publish-release.py
 本机已完成 Developer ID 签名、应用与 DMG 的 Apple 公证、票据装订和 Gatekeeper 验证；未在另一台 Mac 上完成安装验收。自动化通过不代表所有窗口、VoiceOver、复杂 PDF 和大文件压力场景均已验证。
 
 </details>
+
+### 多语言开发
+
+多语言实现参考 PodLilt，使用类型安全的文案键和独立 Swift 词典，位于 `Sources/IMGX/Localization`，随应用一起编译，无需额外下载语言包：
+
+| 文件 | 职责 |
+| --- | --- |
+| `AppLanguage.swift` | 支持的语言及系统语言匹配规则 |
+| `L10nKey.swift` | 全部文案键 |
+| `L10n.swift` | 词典注册、参数替换及缺失翻译时的英语回退 |
+| `English.swift` | 英语基础词典 |
+| `SimplifiedChinese.swift` | 简体中文 |
+| `TraditionalChinese.swift` | 繁體中文 |
+| `Japanese.swift` | 日本語 |
+
+界面和业务提示统一调用 `L10n.text(.chooseImages)`；参数化文案如 `L10n.text(.exportCount, String(count))`，词典中以 `%@` 表示参数。不要拼接带语序的翻译片段，也不要将显示文案用于标识、文件扩展名或焦点判断。
+
+增加文案时，在 `L10nKey` 声明新键，并补齐四份词典。增加语言时，新增独立词典，在 `AppLanguage` 增加语言及匹配规则，在 `L10n.translations` 注册，并更新 `Scripts/Info.plist` 的 `CFBundleLocalizations`。英语作为默认开发语言，缺少词条时回退到英语。
+
+运行 `bash Scripts/check.sh` 检查全部语言的键完整性、参数占位符数量、地区及文字系统匹配、不支持语言回退和文件名中格式字符的安全替换。当前按系统首选语言匹配；例如 `zh-Hans` 使用简体，`zh-Hant` / `zh-TW` / `zh-HK` / `zh-MO` 使用繁体，`ja` 使用日语，`fr` 等不支持语言使用英语。
 
 ## 签名、公证与自动发布
 

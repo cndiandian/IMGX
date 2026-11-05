@@ -117,7 +117,7 @@ private func writeImage(_ url: URL) throws -> Data {
     let model = AppModel()
     await model.add([directory])
     #expect(model.items.isEmpty && !model.isImporting)
-    #expect(model.toast?.text.contains("未找到") == true)
+    #expect(model.toast?.text == L10n.text(.emptyFolder))
 }
 
 @Test func exportRejectsEscapingPathsAndSymlinkParents() throws {

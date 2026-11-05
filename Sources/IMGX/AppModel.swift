@@ -9,7 +9,7 @@ struct ImageItem: Identifiable {
     let importRoot: URL?
     let relativeDirectory: [String]
     var pageNumber: Int? = nil
-    var displayName: String { pageNumber.map { "\(url.lastPathComponent) · 第 \($0) 页" } ?? url.lastPathComponent }
+    var displayName: String { pageNumber.map { L10n.text(.pdfPageName, url.lastPathComponent, String($0)) } ?? url.lastPathComponent }
     var relativePath: String { (relativeDirectory + [displayName]).joined(separator: "/") }
     var thumbnail: NSImage?
     var status: ItemStatus = .pending
@@ -19,10 +19,10 @@ enum ItemStatus {
     case pending, processing, complete(Int), failed(String)
     var label: String {
         switch self {
-        case .pending: "待转换"
-        case .processing: "转换中…"
-        case .complete(let size): "完成 · \(byteString(Int64(size)))"
-        case .failed(let reason): "失败 · \(reason)"
+        case .pending: L10n.text(.pending)
+        case .processing: L10n.text(.processing)
+        case .complete(let size): L10n.text(.completeSize, byteString(Int64(size)))
+        case .failed(let reason): L10n.text(.failedReason, reason)
         }
     }
     var symbol: String {
@@ -37,7 +37,7 @@ enum ItemStatus {
 }
 
 func byteString(_ count: Int64) -> String {
-    ByteCountFormatter.string(fromByteCount: count, countStyle: .file)
+    count.formatted(.byteCount(style: .file).locale(Locale(identifier: L10n.language.rawValue)))
 }
 
 struct ToastMessage: Identifiable {
@@ -165,7 +165,7 @@ final class AppModel {
         let message = ToastMessage(text: text, kind: kind, exportDirectory: exportDirectory)
         toast = message
         NSAccessibility.post(element: NSApplication.shared, notification: .announcementRequested,
-                             userInfo: [.announcement: text + (exportDirectory.map { "，保存至 " + $0.path } ?? ""), .priority: NSAccessibilityPriorityLevel.medium.rawValue])
+                             userInfo: [.announcement: text + (exportDirectory.map { L10n.text(.savedPath, $0.path) } ?? ""), .priority: NSAccessibilityPriorityLevel.medium.rawValue])
         if !persistent {
             toastTask = Task { [weak self] in
                 try? await Task.sleep(for: .seconds(5))
@@ -183,8 +183,9 @@ final class AppModel {
     func chooseImages() {
         guard !isExporting, NSApp.mainWindow?.attachedSheet == nil else { return }
         let panel = NSOpenPanel()
-        panel.title = "选择图片、PDF 或文件夹"
+        panel.title = L10n.text(.chooseInput)
         panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic, .pdf, .folder]
+        panel.prompt = L10n.text(.open)
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = true
         present(panel) { [weak self] response in
@@ -222,7 +223,7 @@ final class AppModel {
             // 取消导入保留之前已添加的图片。
         } catch {
             guard importRevision == revision else { return }
-            notify("无法导入：\(error.localizedDescription)")
+            notify(L10n.text(.importFailed, error.localizedDescription))
         }
     }
 
@@ -257,9 +258,9 @@ final class AppModel {
             }
         }
         var notices: [String] = []
-        if result.images.isEmpty && result.includedFolders { notices.append("文件夹中未找到支持的图片。") }
-        if result.skipped > 0 { notices.append("已跳过 \(result.skipped) 个不支持的项目。") }
-        if result.unreadable > 0 { notices.append("有 \(result.unreadable) 个项目无法读取。") }
+        if result.images.isEmpty && result.includedFolders { notices.append(L10n.text(.emptyFolder)) }
+        if result.skipped > 0 { notices.append(L10n.text(.skippedItems, String(result.skipped))) }
+        if result.unreadable > 0 { notices.append(L10n.text(.unreadableItems, String(result.unreadable))) }
         if !result.failures.isEmpty { notices.append(result.failures.prefix(3).joined(separator: "\n")) }
         if !notices.isEmpty { notify(notices.joined(separator: "\n")) }
     }
@@ -268,7 +269,7 @@ final class AppModel {
         let key = URL(fileURLWithPath: root.standardizedFileURL.path, isDirectory: true)
         if let name = rootNames[key] { return name }
         let basename = root.lastPathComponent
-        let stem = basename.isEmpty || basename == "/" ? "文件夹" : basename
+        let stem = basename.isEmpty || basename == "/" ? L10n.text(.folder) : basename
         let used = Set(rootNames.values.map { $0.precomposedStringWithCanonicalMapping.lowercased() })
         var name = stem
         var index = 1
@@ -300,8 +301,8 @@ final class AppModel {
         let snapshot = settings
         let batch = exportBatch
         let panel = NSOpenPanel()
-        panel.title = "选择导出文件夹"
-        panel.prompt = "导出图片"
+        panel.title = L10n.text(.chooseExport)
+        panel.prompt = L10n.text(.exportImages)
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
@@ -352,7 +353,7 @@ final class AppModel {
             }
             completedCount += 1
         }
-        notify("已导出 \(successes)/\(batch.count) 张图片" + (successes < batch.count ? "。失败原因可在文件列表查看。" : ""),
+        notify(L10n.text(.exportSummary, String(successes), String(batch.count)) + (successes < batch.count ? L10n.text(.exportFailures) : ""),
                kind: .export, exportDirectory: directory)
     }
 

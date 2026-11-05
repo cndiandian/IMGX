@@ -5,12 +5,12 @@ struct ComparisonPicker: NSViewRepresentable {
     @Binding var selection: ComparisonMode
     func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
     func makeNSView(context: Context) -> NSSegmentedControl {
-        let control = NSSegmentedControl(labels: ComparisonMode.allCases.map(\.rawValue), trackingMode: .selectOne,
+        let control = NSSegmentedControl(labels: ComparisonMode.allCases.map(\.title), trackingMode: .selectOne,
                                          target: context.coordinator, action: #selector(Coordinator.changed(_:)))
         control.segmentStyle = .rounded
         control.selectedSegmentBezelColor = .darkGray
-        control.setAccessibilityLabel("对比方式")
-        for index in ComparisonMode.allCases.indices { control.setWidth(48, forSegment: index) }
+        control.setAccessibilityLabel(L10n.text(.comparison))
+        for index in ComparisonMode.allCases.indices { control.setWidth(58, forSegment: index) }
         return control
     }
     func updateNSView(_ control: NSSegmentedControl, context: Context) {

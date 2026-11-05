@@ -9,10 +9,10 @@ final class AppUpdateModel {
         var message: String {
             switch self {
             case .idle: ""
-            case .checking: "正在检查 GitHub 最新正式版本"
-            case .upToDate: "当前已是最新版本。"
-            case .downloading(let version): "正在下载版本 \(version)"
-            case .opened(let version, _): "版本 \(version) 的安装镜像已打开。"
+            case .checking: L10n.text(.checkingUpdates)
+            case .upToDate: L10n.text(.upToDate)
+            case .downloading(let version): L10n.text(.downloadingVersion, version)
+            case .opened(let version, _): L10n.text(.openedVersion, version)
             case .failed(let message): message
             }
         }

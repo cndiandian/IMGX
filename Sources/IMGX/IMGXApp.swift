@@ -13,6 +13,7 @@ struct IMGXApp: App {
     var body: some Scene {
         WindowGroup("IMGX") {
             ContentView()
+                .environment(\.locale, Locale(identifier: L10n.language.rawValue))
                 .frame(minWidth: 1000, minHeight: 700)
                 .ignoresSafeArea(.container, edges: .top)
         }
@@ -20,8 +21,9 @@ struct IMGXApp: App {
         .windowStyle(.hiddenTitleBar)
         .commands { ImageCommands(); AppInfoCommands() }
 
-        Window("关于 IMGX", id: "about") {
+        Window(L10n.text(.about), id: "about") {
             AboutView(updater: updater)
+                .environment(\.locale, Locale(identifier: L10n.language.rawValue))
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)

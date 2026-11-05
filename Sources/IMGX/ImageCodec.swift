@@ -8,10 +8,10 @@ enum CodecError: LocalizedError {
     case decode, encode, invalidDimensions, imageTooLarge
     var errorDescription: String? {
         switch self {
-        case .decode: "无法读取图片，请检查文件是否损坏或属于不支持的动态图像。"
-        case .encode: "图片编码失败，请更换格式或缩小尺寸后重试。"
-        case .invalidDimensions: "宽高必须为 1～16383 的正整数，或同时留空使用原尺寸。"
-        case .imageTooLarge: "输出每边不能超过 16383 像素，总像素不能超过 1 亿。"
+        case .decode: L10n.text(.codecDecode)
+        case .encode: L10n.text(.codecEncode)
+        case .invalidDimensions: L10n.text(.invalidDimensions)
+        case .imageTooLarge: L10n.text(.imageTooLarge)
         }
     }
 }

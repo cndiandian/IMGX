@@ -87,21 +87,21 @@ struct ContentView: View {
 
     private var resultBar: some View {
         HStack(spacing: 14) {
-            Text("预览").font(.system(size: 13, weight: .semibold))
+            Text(L10n.text(.preview)).font(.system(size: 13, weight: .semibold))
             if model.isExporting && !model.isChoosingExportDestination {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("正在导出 · 已处理 \(model.completedCount)/\(model.items.count)")
+                    Text(L10n.text(.exportingProgress, String(model.completedCount), String(model.items.count)))
                         .font(.caption).monospacedDigit()
                     ProgressView(value: Double(model.completedCount), total: Double(max(1, model.items.count)))
                         .progressViewStyle(.linear).tint(.primary)
-                        .accessibilityLabel("导出进度")
-                        .accessibilityValue("已处理 \(model.completedCount) 张，共 \(model.items.count) 张")
+                        .accessibilityLabel(L10n.text(.exportProgress))
+                        .accessibilityValue(L10n.text(.processedCount, String(model.completedCount), String(model.items.count)))
                 }
                 .frame(width: 180)
             } else if let preview = model.preview {
                 HStack(spacing: 8) {
                     if model.selected?.pageNumber != nil {
-                        Text("当前页").foregroundStyle(.secondary)
+                        Text(L10n.text(.currentPage)).foregroundStyle(.secondary)
                     } else {
                         Text(byteString(model.selected?.originalBytes ?? 0)).foregroundStyle(.secondary)
                         Image(systemName: "arrow.right").foregroundStyle(.secondary).accessibilityHidden(true)
@@ -110,7 +110,7 @@ struct ContentView: View {
                     if model.selected?.pageNumber == nil {
                         let original = Double(model.selected?.originalBytes ?? 0)
                         let difference = original > 0 ? (1 - Double(preview.data.count) / original) * 100 : 0
-                        Text(difference >= 0 ? "减少 \(difference, specifier: "%.1f")%" : "增加 \(-difference, specifier: "%.1f")%")
+                        Text(L10n.text(difference >= 0 ? .reduction : .increase, String(format: "%.1f", locale: Locale(identifier: L10n.language.rawValue), abs(difference))))
                             .font(.system(size: 11, weight: .medium))
                             .padding(.horizontal, 8).padding(.vertical, 5)
                             .background((difference >= 0 ? Color.green : .orange).opacity(0.16), in: Capsule())
@@ -119,32 +119,32 @@ struct ContentView: View {
                 .font(.system(size: 12)).monospacedDigit()
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isStaticText)
-                .accessibilityLabel("预览结果")
-                .accessibilityValue("\(model.selected?.pageNumber == nil ? "原图 " + byteString(model.selected?.originalBytes ?? 0) : "PDF 当前页")，输出 \(byteString(Int64(preview.data.count)))；原图 \(preview.original.width) 乘 \(preview.original.height) 像素，输出 \(preview.decoded.width) 乘 \(preview.decoded.height) 像素")
-                .help("原图 \(preview.original.width)×\(preview.original.height) px → 输出 \(preview.decoded.width)×\(preview.decoded.height) px")
-            } else if model.previewLoading { Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
+                .accessibilityLabel(L10n.text(.previewResult))
+                .accessibilityValue(L10n.text(.previewAccessibility, model.selected?.pageNumber == nil ? L10n.text(.original) + " " + byteString(model.selected?.originalBytes ?? 0) : L10n.text(.pdfCurrentPage), byteString(Int64(preview.data.count)), String(preview.original.width), String(preview.original.height), String(preview.decoded.width), String(preview.decoded.height)))
+                .help(L10n.text(.previewSizeHelp, String(preview.original.width), String(preview.original.height), String(preview.decoded.width), String(preview.decoded.height)))
+            } else if model.previewLoading { Text(L10n.text(.previewLoading)).font(.caption).foregroundStyle(.secondary) }
             Spacer(minLength: 0)
-            ComparisonPicker(selection: $comparisonMode).frame(width: 108, height: 26)
-            Button("适应窗口") { resetCanvas = UUID() }.font(.system(size: 12))
+            ComparisonPicker(selection: $comparisonMode).frame(width: 128, height: 26)
+            Button(L10n.text(.fit)) { resetCanvas = UUID() }.font(.system(size: 12))
         }
         .padding(.horizontal, 20).frame(height: 54)
         .background { windowDragArea }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("编码预览结果")
+        .accessibilityLabel(L10n.text(.encodedPreview))
     }
 
     private var previewCanvas: some View {
         ZStack {
             ComparisonCanvas(result: model.preview, imageID: model.selectedID, mode: comparisonMode,
                              resetID: resetCanvas, remove: { model.removeSelected() })
-            if model.previewLoading { ProgressView().controlSize(.regular).accessibilityLabel("正在生成编码预览").padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) }
-            else if model.preview == nil { ContentUnavailableView("无法生成预览", systemImage: "exclamationmark.triangle", description: Text("检查图片或调整参数后重试")) }
+            if model.previewLoading { ProgressView().controlSize(.regular).accessibilityLabel(L10n.text(.encodingPreview)).padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) }
+            else if model.preview == nil { ContentUnavailableView(L10n.text(.previewUnavailable), systemImage: "exclamationmark.triangle", description: Text(L10n.text(.previewRetry))) }
             if model.preview != nil {
                 VStack {
                     HStack {
-                        previewLabel("原图")
+                        previewLabel(L10n.text(.original))
                         Spacer()
-                        previewLabel("转换结果")
+                        previewLabel(L10n.text(.result))
                     }
                     Spacer()
                 }.padding(16).allowsHitTesting(false)
@@ -160,36 +160,36 @@ struct ContentView: View {
 
     private var settingsBar: some View {
         HStack(spacing: 16) {
-            Picker("格式", selection: $model.settings.format) {
+            Picker(L10n.text(.format), selection: $model.settings.format) {
                 ForEach(OutputFormat.allCases) { Text($0.rawValue).tag($0) }
             }.frame(width: 130)
             HStack(spacing: 8) {
-                Text("质量").foregroundStyle(.secondary)
+                Text(L10n.text(.quality)).foregroundStyle(.secondary)
                 Slider(value: $model.settings.quality, in: 1...100, step: 1).tint(.primary)
                     .disabled(!model.settings.usesQuality).frame(minWidth: 60, maxWidth: 110)
-                    .accessibilityLabel("压缩质量")
-                    .accessibilityValue(model.settings.usesQuality ? "\(Int(model.settings.quality))，范围 1 到 100" : "无损，当前模式不使用质量参数")
-                    .help(model.settings.usesQuality ? "压缩质量：\(Int(model.settings.quality))（1～100）" : "PNG 和 WebP 无损模式不使用质量参数")
-                Text(model.settings.usesQuality ? "\(Int(model.settings.quality))" : "无损")
-                    .monospacedDigit().frame(width: 28)
+                    .accessibilityLabel(L10n.text(.compressionQuality))
+                    .accessibilityValue(model.settings.usesQuality ? L10n.text(.qualityRange, String(Int(model.settings.quality))) : L10n.text(.losslessRange))
+                    .help(model.settings.usesQuality ? L10n.text(.qualityHelp, String(Int(model.settings.quality))) : L10n.text(.losslessHelp))
+                Text(model.settings.usesQuality ? "\(Int(model.settings.quality))" : L10n.text(.lossless))
+                    .monospacedDigit().fixedSize(horizontal: true, vertical: false).frame(minWidth: 28)
             }
-            Picker("尺寸", selection: $model.settings.size) {
-                ForEach(SizePreset.allCases) { Text($0.rawValue).tag($0) }
+            Picker(L10n.text(.size), selection: $model.settings.size) {
+                ForEach(SizePreset.allCases) { Text($0.title).tag($0) }
             }.frame(width: 140)
             Button { advanced.toggle() } label: {
                 Image(systemName: "slider.horizontal.3").frame(width: 32, height: 32)
             }
-                .accessibilityLabel("更多设置").buttonStyle(.borderless)
-                .help("更多设置")
+                .accessibilityLabel(L10n.text(.moreSettings)).buttonStyle(.borderless)
+                .help(L10n.text(.moreSettings))
                 .popover(isPresented: $advanced) { AdvancedSettingsView(model: model, isPresented: $advanced) }
             Spacer(minLength: 0)
-            Button(model.isChoosingExportDestination ? "选择保存位置" : model.isExporting ? "已处理 \(model.completedCount)/\(model.items.count)" : "导出 \(model.items.count) 张图片") {
+            Button(model.isChoosingExportDestination ? L10n.text(.chooseDestination) : model.isExporting ? L10n.text(.processedShort, String(model.completedCount), String(model.items.count)) : L10n.text(.exportCount, String(model.items.count))) {
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 model.chooseExportDirectory()
             }
             .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
             .disabled(model.isExporting || model.isImporting)
-            .help("选择文件夹后导出全部图片，保留导入的文件夹层级（⌘Return）")
+            .help(L10n.text(.exportHelp))
         }
         .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
         .disabled(model.isExporting)
@@ -199,13 +199,13 @@ struct ContentView: View {
     private var emptyState: some View {
         VStack(spacing: 0) {
             BrandIcon(size: 84).padding(.bottom, 24)
-            Text("图片压缩与转换").font(.system(size: 27, weight: .semibold))
-            Text("本地处理 · 多格式输出 · 保留原文件")
+            Text(L10n.text(.emptyTitle)).font(.system(size: 27, weight: .semibold))
+            Text(L10n.text(.emptySubtitle))
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
-            Button("选择图片") { model.chooseImages() }
+            Button(L10n.text(.chooseImages)) { model.chooseImages() }
                 .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
                 .padding(.top, 30)
-            Text("或将图片、PDF、文件夹拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
+            Text(L10n.text(.dropHint)).foregroundStyle(.secondary).padding(.top, 16)
             Text("JPG · JPEG · PNG · WebP · HEIC · PDF")
                 .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
         }
@@ -217,13 +217,13 @@ struct ContentView: View {
             HStack(spacing: 10) {
                 Text("IMGX").font(.system(size: 18, weight: .semibold))
                 Spacer()
-                Text("\(model.items.count) 张").foregroundStyle(.secondary).font(.caption)
+                Text(L10n.text(.imageCount, String(model.items.count))).foregroundStyle(.secondary).font(.caption)
             }
             .frame(height: 40)
             .padding(.top, 36)
             .background { windowDragArea }
             Button { model.chooseImages() } label: {
-                Label("添加图片", systemImage: "plus").frame(maxWidth: .infinity)
+                Label(L10n.text(.addImages), systemImage: "plus").frame(maxWidth: .infinity)
             }
             .controlSize(.large).disabled(model.isExporting)
             ScrollViewReader { proxy in
@@ -254,16 +254,16 @@ struct ContentView: View {
                 Button { model.removeSelected() } label: {
                     Image(systemName: "minus.circle").frame(width: 32, height: 32)
                 }
-                .accessibilityLabel("移除选中图片")
-                .help("从列表移除选中图片，保留原文件（Delete）")
+                .accessibilityLabel(L10n.text(.removeImage))
+                .help(L10n.text(.removeHelp))
                 Spacer()
-                Button("清空列表") { model.clear() }.font(.caption)
+                Button(L10n.text(.clearList)) { model.clear() }.font(.caption)
             }
             .buttonStyle(.borderless).disabled(model.isExporting)
         }
         .padding(.horizontal, 16).padding(.bottom, 16)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("图片列表")
+        .accessibilityLabel(L10n.text(.imageList))
     }
 
     private var windowDragArea: some View {
@@ -289,7 +289,7 @@ struct ContentView: View {
                         .font(.system(size: 10)).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }
-                Text((item.pageNumber == nil ? "" : "PDF 原文件 · ") + byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text((item.pageNumber == nil ? "" : L10n.text(.pdfFilePrefix)) + byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
                 Label(item.status.label, systemImage: item.status.symbol)
                     .labelStyle(.titleAndIcon).font(.caption).lineLimit(1)
                     .foregroundStyle(item.status.isFailure ? Color.primary : Color.secondary)
@@ -317,9 +317,9 @@ struct ContentView: View {
                 .padding(16)
             VStack(spacing: 16) {
                 Image(systemName: "square.and.arrow.down").font(.system(size: 40))
-                Text("松开以添加图片、PDF 或文件夹").font(.title2.weight(.semibold))
+                Text(L10n.text(.releaseToAdd)).font(.title2.weight(.semibold))
                 Text("JPG · JPEG · PNG · WebP · HEIC · PDF").foregroundStyle(.secondary)
-                Text("本地处理，保留原文件").font(.caption).foregroundStyle(.secondary)
+                Text(L10n.text(.localOriginals)).font(.caption).foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -329,9 +329,9 @@ struct ContentView: View {
 
     private var importProgress: some View {
         HStack(spacing: 12) {
-            ProgressView().controlSize(.small).accessibilityLabel("正在导入")
-            Text("正在读取图片、PDF 与文件夹").font(.callout)
-            Button("取消") { model.cancelImport() }.buttonStyle(.borderless).focusEffectDisabled()
+            ProgressView().controlSize(.small).accessibilityLabel(L10n.text(.importing))
+            Text(L10n.text(.readingInputs)).font(.callout)
+            Button(L10n.text(.cancel)) { model.cancelImport() }.buttonStyle(.borderless).focusEffectDisabled()
         }
         .padding(16)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
@@ -339,7 +339,7 @@ struct ContentView: View {
 
     private func openExportDirectory(_ directory: URL) {
         if !NSWorkspace.shared.open(directory) {
-            model.notify("无法打开导出目录，请确认目录仍然存在。")
+            model.notify(L10n.text(.cannotOpenDirectory))
         }
     }
 
@@ -351,15 +351,15 @@ struct ContentView: View {
                     Text(message.text).textSelection(.enabled)
                     if let directory = message.exportDirectory {
                         HStack(spacing: 12) {
-                            Text("保存至").foregroundStyle(.secondary).fixedSize()
+                            Text(L10n.text(.savedTo)).foregroundStyle(.secondary).fixedSize()
                             Button { openExportDirectory(directory) } label: {
                                 Text(directory.path).underline()
                                     .lineLimit(1).truncationMode(.middle)
                             }
                             .buttonStyle(.plain).focusEffectDisabled()
-                            .accessibilityLabel("打开导出目录：\(directory.path)")
+                            .accessibilityLabel(L10n.text(.openDirectoryPath, directory.path))
                             .help(directory.path)
-                            Button("打开目录") { openExportDirectory(directory) }
+                            Button(L10n.text(.openDirectory)) { openExportDirectory(directory) }
                                 .buttonStyle(.bordered).focusEffectDisabled().fixedSize()
                         }
                     }
@@ -368,7 +368,7 @@ struct ContentView: View {
                 Button { model.dismissToast() } label: {
                     Image(systemName: "xmark").frame(width: 32, height: 32)
                 }
-                .accessibilityLabel("关闭提示").help("关闭提示")
+                .accessibilityLabel(L10n.text(.closeNotice)).help(L10n.text(.closeNotice))
                 .buttonStyle(.borderless)
             }
             .padding(16).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
