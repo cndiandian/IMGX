@@ -10,6 +10,7 @@ struct ExportRequest: Sendable {
     let url: URL
     let accessRoot: URL?
     let relativeDirectory: [String]
+    var pageNumber: Int? = nil
 }
 
 enum ExportPathError: LocalizedError, Equatable {
@@ -20,9 +21,9 @@ enum ExportPathError: LocalizedError, Equatable {
 enum ExportWriter {
     /// The exclusive write is the protection; the existence check alone would race.
     static func write(_ data: Data, source: URL, format: OutputFormat, directory: URL,
-                      relativeDirectory: [String] = []) throws -> URL {
+                      relativeDirectory: [String] = [], pageNumber: Int? = nil) throws -> URL {
         let directory = try destinationDirectory(relativeDirectory, inside: directory)
-        let stem = source.deletingPathExtension().lastPathComponent
+        let stem = source.deletingPathExtension().lastPathComponent + (pageNumber.map { String(format: "-page-%03d", $0) } ?? "")
         var index = 0
         while true {
             let suffix = index == 0 ? "" : "-\(index)"
@@ -59,13 +60,13 @@ enum ExportWriter {
 
 extension ImageProcessor {
     func export(url: URL, settings: ConversionSettings, directory: URL,
-                relativeDirectory: [String] = [], accessRoot: URL? = nil) throws -> ExportedFile {
+                relativeDirectory: [String] = [], accessRoot: URL? = nil, pageNumber: Int? = nil) throws -> ExportedFile {
         try Task.checkCancellation()
         return try autoreleasepool {
-            let data = try ImageCodec.encode(url: url, settings: settings, accessRoot: accessRoot)
+            let data = try ImageCodec.encode(url: url, settings: settings, accessRoot: accessRoot, pageNumber: pageNumber)
             try Task.checkCancellation()
             let target = try ExportWriter.write(data, source: url, format: settings.format, directory: directory,
-                                                relativeDirectory: relativeDirectory)
+                                                relativeDirectory: relativeDirectory, pageNumber: pageNumber)
             return ExportedFile(url: target, byteCount: data.count)
         }
     }

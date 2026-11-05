@@ -8,7 +8,9 @@ struct ImageItem: Identifiable {
     let originalBytes: Int64
     let importRoot: URL?
     let relativeDirectory: [String]
-    var relativePath: String { (relativeDirectory + [url.lastPathComponent]).joined(separator: "/") }
+    var pageNumber: Int? = nil
+    var displayName: String { pageNumber.map { "\(url.lastPathComponent) · 第 \($0) 页" } ?? url.lastPathComponent }
+    var relativePath: String { (relativeDirectory + [displayName]).joined(separator: "/") }
     var thumbnail: NSImage?
     var status: ItemStatus = .pending
 }
@@ -109,7 +111,7 @@ final class AppModel {
                 guard let self else { return }
                 let source: CGImage
                 if let cached = self.selectedSource { source = cached }
-                else { source = try await ImageProcessor.shared.load(url: item.url, accessRoot: item.importRoot) }
+                else { source = try await ImageProcessor.shared.load(url: item.url, accessRoot: item.importRoot, pageNumber: item.pageNumber) }
                 guard !Task.isCancelled, self.previewRevision == revision else { return }
                 self.selectedSource = source
                 self.selectedPixelSize = CGSize(width: source.width, height: source.height)
@@ -180,8 +182,8 @@ final class AppModel {
     func chooseImages() {
         guard !isExporting, NSApp.mainWindow?.attachedSheet == nil else { return }
         let panel = NSOpenPanel()
-        panel.title = "选择图片或文件夹"
-        panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic, .folder]
+        panel.title = "选择图片、PDF 或文件夹"
+        panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic, .pdf, .folder]
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = true
         present(panel) { [weak self] response in
@@ -231,13 +233,13 @@ final class AppModel {
     }
 
     private func append(_ result: ImageImportResult) {
-        var known = Set(items.map { $0.url.standardizedFileURL })
+        var known = Set(items.map { ImportIdentity(url: $0.url.standardizedFileURL, pageNumber: $0.pageNumber) })
         var additions: [ImageItem] = []
         for image in result.images {
-            guard known.insert(image.url).inserted else { continue }
+            guard known.insert(ImportIdentity(url: image.url, pageNumber: image.pageNumber)).inserted else { continue }
             let relativeDirectory = image.root.map { [rootName(for: $0)] + image.subdirectories } ?? []
             let item = ImageItem(url: image.url, originalBytes: image.originalBytes,
-                                 importRoot: image.root, relativeDirectory: relativeDirectory)
+                                 importRoot: image.root, relativeDirectory: relativeDirectory, pageNumber: image.pageNumber)
             additions.append(item)
         }
         items.append(contentsOf: additions)
@@ -246,8 +248,9 @@ final class AppModel {
             let id = item.id
             let url = item.url
             let root = item.importRoot
+            let pageNumber = item.pageNumber
             Task { [weak self] in
-                let cgImage = await ThumbnailWorker.shared.load(url: url, accessRoot: root)
+                let cgImage = await ThumbnailWorker.shared.load(url: url, accessRoot: root, pageNumber: pageNumber)
                 guard let self, let index = self.items.firstIndex(where: { $0.id == id }) else { return }
                 if let cgImage { self.items[index].thumbnail = NSImage(cgImage: cgImage, size: .zero) }
             }
@@ -256,7 +259,8 @@ final class AppModel {
         if result.images.isEmpty && result.includedFolders { notices.append("文件夹中未找到支持的图片。") }
         if result.skipped > 0 { notices.append("已跳过 \(result.skipped) 个不支持的项目。") }
         if result.unreadable > 0 { notices.append("有 \(result.unreadable) 个项目无法读取。") }
-        if !notices.isEmpty { notify(notices.joined()) }
+        if !result.failures.isEmpty { notices.append(result.failures.prefix(3).joined(separator: "\n")) }
+        if !notices.isEmpty { notify(notices.joined(separator: "\n")) }
     }
 
     private func rootName(for root: URL) -> String {
@@ -322,7 +326,7 @@ final class AppModel {
     }
 
     private var exportBatch: [ExportRequest] {
-        items.map { ExportRequest(id: $0.id, url: $0.url, accessRoot: $0.importRoot, relativeDirectory: $0.relativeDirectory) }
+        items.map { ExportRequest(id: $0.id, url: $0.url, accessRoot: $0.importRoot, relativeDirectory: $0.relativeDirectory, pageNumber: $0.pageNumber) }
     }
 
     private func performExport(to directory: URL, settings snapshot: ConversionSettings, batch: [ExportRequest]) async {
@@ -339,7 +343,7 @@ final class AppModel {
             if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .processing }
             do {
                 let result = try await ImageProcessor.shared.export(url: request.url, settings: snapshot, directory: directory,
-                                                                    relativeDirectory: request.relativeDirectory, accessRoot: request.accessRoot)
+                                                                    relativeDirectory: request.relativeDirectory, accessRoot: request.accessRoot, pageNumber: request.pageNumber)
                 if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .complete(result.byteCount) }
                 successes += 1
             } catch {

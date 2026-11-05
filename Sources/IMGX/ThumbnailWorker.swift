@@ -2,10 +2,11 @@ import AppKit
 import ImageIO
 
 enum Thumbnail {
-    static func load(url: URL, accessRoot: URL? = nil) -> CGImage? {
+    static func load(url: URL, accessRoot: URL? = nil, pageNumber: Int? = nil) -> CGImage? {
         let scope = accessRoot ?? url
         let access = scope.startAccessingSecurityScopedResource()
         defer { if access { scope.stopAccessingSecurityScopedResource() } }
+        if let pageNumber { return try? PDFRenderer.render(url: url, pageNumber: pageNumber, maximumDimension: 96) }
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil) {
             let options: [CFString: Any] = [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -27,7 +28,7 @@ enum Thumbnail {
 
 actor ThumbnailWorker {
     static let shared = ThumbnailWorker()
-    func load(url: URL, accessRoot: URL? = nil) -> CGImage? {
-        autoreleasepool { Thumbnail.load(url: url, accessRoot: accessRoot) }
+    func load(url: URL, accessRoot: URL? = nil, pageNumber: Int? = nil) -> CGImage? {
+        autoreleasepool { Thumbnail.load(url: url, accessRoot: accessRoot, pageNumber: pageNumber) }
     }
 }

@@ -18,12 +18,14 @@ struct ImportedImage: Sendable {
     let originalBytes: Int64
     let root: URL?
     let subdirectories: [String]
+    var pageNumber: Int? = nil
 }
 
 struct ImageImportResult: Sendable {
     var images: [ImportedImage] = []
     var skipped = 0
     var unreadable = 0
+    var failures: [String] = []
     var includedFolders = false
 }
 
@@ -51,7 +53,7 @@ actor ImageImportScanner: ImageImportScanning {
                 result.includedFolders = true
                 try scanFolder(url, into: &result)
             } else {
-                append(url, values: values, root: nil, subdirectories: [], into: &result)
+                try append(url, values: values, root: nil, subdirectories: [], into: &result)
             }
         }
         return result
@@ -72,7 +74,7 @@ actor ImageImportScanner: ImageImportScanning {
                 if values.isDirectory == true {
                     subfolders.append((child, relativeDirectory + [child.lastPathComponent]))
                 } else {
-                    append(child, values: values, root: root, subdirectories: relativeDirectory, into: &result)
+                    try append(child, values: values, root: root, subdirectories: relativeDirectory, into: &result)
                 }
             }
             pending.append(contentsOf: subfolders.reversed())
@@ -80,9 +82,21 @@ actor ImageImportScanner: ImageImportScanning {
     }
 
     private func append(_ url: URL, values: URLResourceValues, root: URL?, subdirectories: [String],
-                        into result: inout ImageImportResult) {
-        guard values.isRegularFile == true, ImageCodec.supportedExtensions.contains(url.pathExtension.lowercased()) else {
+                        into result: inout ImageImportResult) throws {
+        guard values.isRegularFile == true, (ImageCodec.supportedExtensions.contains(url.pathExtension.lowercased()) || url.pathExtension.lowercased() == "pdf") else {
             result.skipped += 1
+            return
+        }
+        if url.pathExtension.lowercased() == "pdf" {
+            do {
+                let count = try PDFRenderer.document(at: url).numberOfPages
+                for page in 1...count {
+                    try Task.checkCancellation()
+                    result.images.append(ImportedImage(url: url.standardizedFileURL, originalBytes: Int64(values.fileSize ?? 0),
+                                                       root: root, subdirectories: subdirectories, pageNumber: page))
+                }
+            } catch is CancellationError { throw CancellationError() }
+            catch { result.unreadable += 1; result.failures.append("\(url.lastPathComponent)：\(error.localizedDescription)") }
             return
         }
         result.images.append(ImportedImage(url: url.standardizedFileURL, originalBytes: Int64(values.fileSize ?? 0),

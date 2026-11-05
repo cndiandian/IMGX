@@ -100,21 +100,27 @@ struct ContentView: View {
                 .frame(width: 180)
             } else if let preview = model.preview {
                 HStack(spacing: 8) {
-                    Text(byteString(model.selected?.originalBytes ?? 0)).foregroundStyle(.secondary)
-                    Image(systemName: "arrow.right").foregroundStyle(.secondary).accessibilityHidden(true)
+                    if model.selected?.pageNumber != nil {
+                        Text("当前页").foregroundStyle(.secondary)
+                    } else {
+                        Text(byteString(model.selected?.originalBytes ?? 0)).foregroundStyle(.secondary)
+                        Image(systemName: "arrow.right").foregroundStyle(.secondary).accessibilityHidden(true)
+                    }
                     Text(byteString(Int64(preview.data.count))).fontWeight(.medium)
-                    let original = Double(model.selected?.originalBytes ?? 0)
-                    let difference = original > 0 ? (1 - Double(preview.data.count) / original) * 100 : 0
-                    Text(difference >= 0 ? "减少 \(difference, specifier: "%.1f")%" : "增加 \(-difference, specifier: "%.1f")%")
-                        .font(.system(size: 11, weight: .medium))
-                        .padding(.horizontal, 8).padding(.vertical, 5)
-                        .background((difference >= 0 ? Color.green : .orange).opacity(0.16), in: Capsule())
+                    if model.selected?.pageNumber == nil {
+                        let original = Double(model.selected?.originalBytes ?? 0)
+                        let difference = original > 0 ? (1 - Double(preview.data.count) / original) * 100 : 0
+                        Text(difference >= 0 ? "减少 \(difference, specifier: "%.1f")%" : "增加 \(-difference, specifier: "%.1f")%")
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 8).padding(.vertical, 5)
+                            .background((difference >= 0 ? Color.green : .orange).opacity(0.16), in: Capsule())
+                    }
                 }
                 .font(.system(size: 12)).monospacedDigit()
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isStaticText)
                 .accessibilityLabel("预览结果")
-                .accessibilityValue("原图 \(byteString(model.selected?.originalBytes ?? 0))，输出 \(byteString(Int64(preview.data.count)))；原图 \(preview.original.width) 乘 \(preview.original.height) 像素，输出 \(preview.decoded.width) 乘 \(preview.decoded.height) 像素")
+                .accessibilityValue("\(model.selected?.pageNumber == nil ? "原图 " + byteString(model.selected?.originalBytes ?? 0) : "PDF 当前页")，输出 \(byteString(Int64(preview.data.count)))；原图 \(preview.original.width) 乘 \(preview.original.height) 像素，输出 \(preview.decoded.width) 乘 \(preview.decoded.height) 像素")
                 .help("原图 \(preview.original.width)×\(preview.original.height) px → 输出 \(preview.decoded.width)×\(preview.decoded.height) px")
             } else if model.previewLoading { Text("正在生成预览…").font(.caption).foregroundStyle(.secondary) }
             Spacer(minLength: 0)
@@ -199,8 +205,8 @@ struct ContentView: View {
             Button("选择图片") { model.chooseImages() }
                 .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
                 .padding(.top, 30)
-            Text("或将图片、文件夹拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
-            Text("JPG · JPEG · PNG · WebP · HEIC")
+            Text("或将图片、PDF、文件夹拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
+            Text("JPG · JPEG · PNG · WebP · HEIC · PDF")
                 .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -276,14 +282,14 @@ struct ContentView: View {
             .frame(width: 44, height: 44)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.url.lastPathComponent).font(.system(size: 13, weight: .medium))
+                Text(item.displayName).font(.system(size: 13, weight: .medium))
                     .lineLimit(1).truncationMode(.middle).help(item.relativePath)
                 if !item.relativeDirectory.isEmpty {
                     Text(item.relativeDirectory.joined(separator: "/"))
                         .font(.system(size: 10)).foregroundStyle(.secondary)
                         .lineLimit(1).truncationMode(.middle)
                 }
-                Text(byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text((item.pageNumber == nil ? "" : "PDF 原文件 · ") + byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
                 Label(item.status.label, systemImage: item.status.symbol)
                     .labelStyle(.titleAndIcon).font(.caption).lineLimit(1)
                     .foregroundStyle(item.status.isFailure ? Color.primary : Color.secondary)
@@ -311,8 +317,8 @@ struct ContentView: View {
                 .padding(16)
             VStack(spacing: 16) {
                 Image(systemName: "square.and.arrow.down").font(.system(size: 40))
-                Text("松开以添加图片或文件夹").font(.title2.weight(.semibold))
-                Text("JPG · JPEG · PNG · WebP · HEIC").foregroundStyle(.secondary)
+                Text("松开以添加图片、PDF 或文件夹").font(.title2.weight(.semibold))
+                Text("JPG · JPEG · PNG · WebP · HEIC · PDF").foregroundStyle(.secondary)
                 Text("本地处理，保留原文件").font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -324,7 +330,7 @@ struct ContentView: View {
     private var importProgress: some View {
         HStack(spacing: 12) {
             ProgressView().controlSize(.small).accessibilityLabel("正在导入")
-            Text("正在读取图片与文件夹").font(.callout)
+            Text("正在读取图片、PDF 与文件夹").font(.callout)
             Button("取消") { model.cancelImport() }.buttonStyle(.borderless).focusEffectDisabled()
         }
         .padding(16)

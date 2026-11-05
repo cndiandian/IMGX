@@ -62,10 +62,11 @@ enum ImageCodec {
         }
     }
 
-    static func load(url: URL, accessRoot: URL? = nil) throws -> CGImage {
+    static func load(url: URL, accessRoot: URL? = nil, pageNumber: Int? = nil) throws -> CGImage {
         let scope = accessRoot ?? url
         let accessed = scope.startAccessingSecurityScopedResource()
         defer { if accessed { scope.stopAccessingSecurityScopedResource() } }
+        if let pageNumber { return try PDFRenderer.render(url: url, pageNumber: pageNumber) }
         return try decode(Data(contentsOf: url))
     }
 
@@ -79,8 +80,8 @@ enum ImageCodec {
     }
 
     /// 导出只需要编码数据；预览另外解码输出，用于真实画质对比。
-    static func encode(url: URL, settings: ConversionSettings, accessRoot: URL? = nil) throws -> Data {
-        try encode(image: load(url: url, accessRoot: accessRoot), settings: settings)
+    static func encode(url: URL, settings: ConversionSettings, accessRoot: URL? = nil, pageNumber: Int? = nil) throws -> Data {
+        try encode(image: load(url: url, accessRoot: accessRoot, pageNumber: pageNumber), settings: settings)
     }
 
     static func encode(image: CGImage, settings: ConversionSettings) throws -> Data {
@@ -132,9 +133,9 @@ enum ImageCodec {
 /// Serializes memory-heavy encoding work away from the UI actor.
 actor ImageProcessor {
     static let shared = ImageProcessor()
-    func load(url: URL, accessRoot: URL? = nil) throws -> CGImage {
+    func load(url: URL, accessRoot: URL? = nil, pageNumber: Int? = nil) throws -> CGImage {
         try Task.checkCancellation()
-        return try autoreleasepool { try ImageCodec.load(url: url, accessRoot: accessRoot) }
+        return try autoreleasepool { try ImageCodec.load(url: url, accessRoot: accessRoot, pageNumber: pageNumber) }
     }
     func convert(image: CGImage, settings: ConversionSettings) throws -> EncodedImage {
         try Task.checkCancellation()
