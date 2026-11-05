@@ -278,3 +278,8 @@
 
 - 按用户要求，将 README 的预览图引用改为 `docs/images/preview.webp`，直接采用工作区已有 WebP 文件，未重新编码或覆盖其内容。
 - 已查看图片，核对尺寸为 2000×1464、WebP 文件签名及引用路径有效，`git diff --check` 通过；无应用代码变更，未重复运行应用测试。本地中文提交，不执行 push。
+
+## 移除旧 JPEG 预览图（2026-11-05）
+
+- 按用户要求删除 `docs/images/preview.jpg`，保留 README 正在引用的 `preview.webp`；上方 JPEG 路径仅为历史验收记录。
+- 验证旧文件已移除、WebP 文件及 README 引用正常，`git diff --check` 通过。本地中文提交，不执行 push。
