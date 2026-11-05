@@ -2,9 +2,10 @@ import AppKit
 import ImageIO
 
 enum Thumbnail {
-    static func load(url: URL) -> CGImage? {
-        let access = url.startAccessingSecurityScopedResource()
-        defer { if access { url.stopAccessingSecurityScopedResource() } }
+    static func load(url: URL, accessRoot: URL? = nil) -> CGImage? {
+        let scope = accessRoot ?? url
+        let access = scope.startAccessingSecurityScopedResource()
+        defer { if access { scope.stopAccessingSecurityScopedResource() } }
         if let source = CGImageSourceCreateWithURL(url as CFURL, nil) {
             let options: [CFString: Any] = [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -26,5 +27,7 @@ enum Thumbnail {
 
 actor ThumbnailWorker {
     static let shared = ThumbnailWorker()
-    func load(url: URL) -> CGImage? { autoreleasepool { Thumbnail.load(url: url) } }
+    func load(url: URL, accessRoot: URL? = nil) -> CGImage? {
+        autoreleasepool { Thumbnail.load(url: url, accessRoot: accessRoot) }
+    }
 }

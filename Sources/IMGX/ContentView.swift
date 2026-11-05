@@ -39,7 +39,11 @@ struct ContentView: View {
         }
         .background(KeyboardBridge(isEditing: advanced, remove: { model.removeSelected() }).frame(width: 0, height: 0))
         .blur(radius: dropTargeted && !model.isExporting ? 2 : 0)
-        .overlay(alignment: .bottom) { toast.padding(24) }
+        .overlay(alignment: .bottom) {
+            if model.isImporting {
+                importProgress.padding(.horizontal, 24).padding(.bottom, model.items.isEmpty ? 24 : 84)
+            } else { toast.padding(24) }
+        }
         .overlay {
             if dropTargeted && !model.isExporting { dropOverlay }
         }
@@ -49,9 +53,9 @@ struct ContentView: View {
             Task {
                 var urls: [URL] = []
                 for provider in providers {
-                    if let url = await droppedURL(provider) { urls.append(url) }
+                    if let url = await ImageFileDrop.fileURL(from: provider) { urls.append(url) }
                 }
-                model.add(urls)
+                await model.add(urls)
             }
             return true
         }
@@ -61,7 +65,7 @@ struct ContentView: View {
                 NSApp.windows.first(where: { $0.canBecomeMain })?.setContentSize(NSSize(width: 1000, height: 700))
             }
             if let input = ProcessInfo.processInfo.environment["IMGX_DEV_INPUTS"] {
-                model.add(input.split(separator: "\n").map { URL(fileURLWithPath: String($0)) })
+                await model.add(input.split(separator: "\n").map { URL(fileURLWithPath: String($0)) })
             }
             #endif
         }
@@ -71,7 +75,7 @@ struct ContentView: View {
             reset: { resetCanvas = UUID() },
             hasImages: !model.items.isEmpty,
             export: { model.chooseExportDirectory() },
-            canExport: !model.items.isEmpty && !model.isExporting,
+            canExport: !model.items.isEmpty && !model.isExporting && !model.isImporting,
             remove: { model.removeSelected() },
             clear: { model.clear() },
             canManageFiles: !model.items.isEmpty && !model.isExporting && !advanced,
@@ -178,8 +182,8 @@ struct ContentView: View {
                 model.chooseExportDirectory()
             }
             .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
-            .disabled(model.isExporting)
-            .help("选择文件夹后导出列表中的全部图片（⌘Return）")
+            .disabled(model.isExporting || model.isImporting)
+            .help("选择文件夹后导出全部图片，保留导入的文件夹层级（⌘Return）")
         }
         .font(.system(size: 12)).padding(.horizontal, 20).frame(height: 68)
         .disabled(model.isExporting)
@@ -195,7 +199,7 @@ struct ContentView: View {
             Button("选择图片") { model.chooseImages() }
                 .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
                 .padding(.top, 30)
-            Text("或将图片拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
+            Text("或将图片、文件夹拖到窗口中").foregroundStyle(.secondary).padding(.top, 16)
             Text("JPG · JPEG · PNG · WebP · HEIC")
                 .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
         }
@@ -224,7 +228,7 @@ struct ContentView: View {
                                 fileCard(item)
                             }
                             .buttonStyle(.plain).focusEffectDisabled().id(item.id)
-                            .accessibilityLabel("\(item.url.lastPathComponent)，\(byteString(item.originalBytes))，\(item.status.label)")
+                            .accessibilityLabel("\(item.relativePath)，\(byteString(item.originalBytes))，\(item.status.label)")
                             .accessibilityAddTraits(item.id == model.selectedID ? .isSelected : [])
                         }
                     }
@@ -273,7 +277,12 @@ struct ContentView: View {
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.url.lastPathComponent).font(.system(size: 13, weight: .medium))
-                    .lineLimit(1).truncationMode(.middle).help(item.url.lastPathComponent)
+                    .lineLimit(1).truncationMode(.middle).help(item.relativePath)
+                if !item.relativeDirectory.isEmpty {
+                    Text(item.relativeDirectory.joined(separator: "/"))
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
                 Text(byteString(item.originalBytes)).font(.system(size: 11)).foregroundStyle(.secondary)
                 Label(item.status.label, systemImage: item.status.symbol)
                     .labelStyle(.titleAndIcon).font(.caption).lineLimit(1)
@@ -302,7 +311,7 @@ struct ContentView: View {
                 .padding(16)
             VStack(spacing: 16) {
                 Image(systemName: "square.and.arrow.down").font(.system(size: 40))
-                Text("松开以添加图片").font(.title2.weight(.semibold))
+                Text("松开以添加图片或文件夹").font(.title2.weight(.semibold))
                 Text("JPG · JPEG · PNG · WebP · HEIC").foregroundStyle(.secondary)
                 Text("本地处理，保留原文件").font(.caption).foregroundStyle(.secondary)
             }
@@ -310,6 +319,16 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .ignoresSafeArea(.container)
         .allowsHitTesting(false)
+    }
+
+    private var importProgress: some View {
+        HStack(spacing: 12) {
+            ProgressView().controlSize(.small).accessibilityLabel("正在导入")
+            Text("正在读取图片与文件夹").font(.callout)
+            Button("取消") { model.cancelImport() }.buttonStyle(.borderless).focusEffectDisabled()
+        }
+        .padding(16)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
     @ViewBuilder private var toast: some View {
@@ -327,16 +346,6 @@ struct ContentView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator.opacity(0.5)))
             .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
             .frame(maxWidth: 680)
-        }
-    }
-}
-
-@MainActor private func droppedURL(_ provider: NSItemProvider) async -> URL? {
-    await withCheckedContinuation { continuation in
-        provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-            if let url = item as? URL { continuation.resume(returning: url) }
-            else if let data = item as? Data { continuation.resume(returning: URL(dataRepresentation: data, relativeTo: nil)) }
-            else { continuation.resume(returning: nil) }
         }
     }
 }

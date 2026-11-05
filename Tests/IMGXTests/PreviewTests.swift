@@ -20,7 +20,7 @@ import Foundation
     let url = directory.appendingPathComponent("sample.png")
     try ImageCodec.convert(image: fixture(), settings: settings).data.write(to: url)
     let model = AppModel()
-    model.add([url, directory.appendingPathComponent("skip.txt")])
+    await model.add([url, directory.appendingPathComponent("skip.txt")])
     model.settings.size = .half
     model.settings.size = .quarter
     try await waitForPreview(model)
@@ -55,7 +55,7 @@ import Foundation
     let portrait = dir.appendingPathComponent("portrait.png")
     try ImageCodec.convert(image: #require(context.makeImage()), settings: png).data.write(to: portrait)
     let model = AppModel()
-    model.add([landscape, portrait])
+    await model.add([landscape, portrait])
     try await waitForPreview(model)
     model.editDimension("60", width: false)
     try await waitForPreview(model)

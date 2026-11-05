@@ -18,7 +18,7 @@ import Foundation
     let existing = dir.appendingPathComponent("first-1.png")
     try Data("keep existing output".utf8).write(to: existing)
     let model = AppModel()
-    model.add([first, broken, last])
+    await model.add([first, broken, last])
     model.settings = settings
     try await waitForPreview(model)
     let expected = try #require(model.preview?.data)
@@ -85,7 +85,7 @@ import Foundation
     let urls = (0..<4).map { dir.appendingPathComponent("input-\($0).png") }
     for url in urls { try data.write(to: url) }
     let model = AppModel()
-    model.add(urls)
+    await model.add(urls)
     model.settings = settings
     let task = Task { await model.export(to: dir) }
     await Task.yield()

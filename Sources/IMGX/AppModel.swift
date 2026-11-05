@@ -6,6 +6,9 @@ struct ImageItem: Identifiable {
     let id = UUID()
     let url: URL
     let originalBytes: Int64
+    let importRoot: URL?
+    let relativeDirectory: [String]
+    var relativePath: String { (relativeDirectory + [url.lastPathComponent]).joined(separator: "/") }
     var thumbnail: NSImage?
     var status: ItemStatus = .pending
 }
@@ -71,7 +74,16 @@ final class AppModel {
     private(set) var isChoosingExportDestination = false
     private(set) var toast: ToastMessage?
     @ObservationIgnored private var toastTask: Task<Void, Never>?
+    private(set) var isImporting = false
+    private let importScanner: any ImageImportScanning
+    @ObservationIgnored private var importTasks: [UUID: Task<ImageImportResult, Error>] = [:]
+    @ObservationIgnored private var importRevision = UUID()
+    @ObservationIgnored private var rootNames: [URL: String] = [:]
     var selected: ImageItem? { items.first { $0.id == selectedID } }
+
+    init(importScanner: any ImageImportScanning = ImageImportScanner.shared) {
+        self.importScanner = importScanner
+    }
 
     var dimensionError: String? {
         guard settings.size == .custom else { return nil }
@@ -97,7 +109,7 @@ final class AppModel {
                 guard let self else { return }
                 let source: CGImage
                 if let cached = self.selectedSource { source = cached }
-                else { source = try await ImageProcessor.shared.load(url: item.url) }
+                else { source = try await ImageProcessor.shared.load(url: item.url, accessRoot: item.importRoot) }
                 guard !Task.isCancelled, self.previewRevision == revision else { return }
                 self.selectedSource = source
                 self.selectedPixelSize = CGSize(width: source.width, height: source.height)
@@ -168,13 +180,13 @@ final class AppModel {
     func chooseImages() {
         guard !isExporting, NSApp.mainWindow?.attachedSheet == nil else { return }
         let panel = NSOpenPanel()
-        panel.title = "选择图片"
-        panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic]
+        panel.title = "选择图片或文件夹"
+        panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic, .folder]
         panel.allowsMultipleSelection = true
-        panel.canChooseDirectories = false
+        panel.canChooseDirectories = true
         present(panel) { [weak self] response in
             guard response == .OK else { return }
-            Task { @MainActor in self?.add(panel.urls) }
+            Task { @MainActor in await self?.add(panel.urls) }
         }
     }
 
@@ -187,48 +199,101 @@ final class AppModel {
         }
     }
 
-    func add(_ urls: [URL]) {
-        guard !isExporting else { return }
+    func add(_ urls: [URL]) async {
+        guard !isExporting, !urls.isEmpty else { return }
+        let id = UUID()
+        let revision = importRevision
+        let task = Task { try await importScanner.scan(urls) }
+        importTasks[id] = task
+        isImporting = true
+        defer {
+            importTasks[id] = nil
+            isImporting = !importTasks.isEmpty
+        }
+        do {
+            let result = try await withTaskCancellationHandler(operation: { try await task.value },
+                                                              onCancel: { task.cancel() })
+            guard !Task.isCancelled, importRevision == revision else { return }
+            append(result)
+        } catch is CancellationError {
+            // 取消导入保留之前已添加的图片。
+        } catch {
+            guard importRevision == revision else { return }
+            notify("无法导入：\(error.localizedDescription)")
+        }
+    }
+
+    func cancelImport() {
+        importRevision = UUID()
+        for task in importTasks.values { task.cancel() }
+        importTasks.removeAll()
+        isImporting = false
+    }
+
+    private func append(_ result: ImageImportResult) {
         var known = Set(items.map { $0.url.standardizedFileURL })
-        var skipped = 0
-        for input in urls {
-            let url = input.standardizedFileURL
-            guard url.isFileURL, ImageCodec.supportedExtensions.contains(url.pathExtension.lowercased()),
-                  (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) != true else {
-                skipped += 1
-                continue
-            }
-            guard known.insert(url).inserted else { continue }
-            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-            let item = ImageItem(url: url, originalBytes: Int64(size))
-            items.append(item)
+        var additions: [ImageItem] = []
+        for image in result.images {
+            guard known.insert(image.url).inserted else { continue }
+            let relativeDirectory = image.root.map { [rootName(for: $0)] + image.subdirectories } ?? []
+            let item = ImageItem(url: image.url, originalBytes: image.originalBytes,
+                                 importRoot: image.root, relativeDirectory: relativeDirectory)
+            additions.append(item)
+        }
+        items.append(contentsOf: additions)
+        if selectedID == nil { selectedID = items.first?.id }
+        for item in additions {
             let id = item.id
+            let url = item.url
+            let root = item.importRoot
             Task { [weak self] in
-                let cgImage = await ThumbnailWorker.shared.load(url: url)
+                let cgImage = await ThumbnailWorker.shared.load(url: url, accessRoot: root)
                 guard let self, let index = self.items.firstIndex(where: { $0.id == id }) else { return }
                 if let cgImage { self.items[index].thumbnail = NSImage(cgImage: cgImage, size: .zero) }
             }
         }
-        if selectedID == nil { selectedID = items.first?.id }
-        if skipped > 0 { notify("已跳过 \(skipped) 个不支持的文件。支持 JPG、JPEG、PNG、WebP、HEIC。") }
+        var notices: [String] = []
+        if result.images.isEmpty && result.includedFolders { notices.append("文件夹中未找到支持的图片。") }
+        if result.skipped > 0 { notices.append("已跳过 \(result.skipped) 个不支持的项目。") }
+        if result.unreadable > 0 { notices.append("有 \(result.unreadable) 个项目无法读取。") }
+        if !notices.isEmpty { notify(notices.joined()) }
+    }
+
+    private func rootName(for root: URL) -> String {
+        let key = URL(fileURLWithPath: root.standardizedFileURL.path, isDirectory: true)
+        if let name = rootNames[key] { return name }
+        let basename = root.lastPathComponent
+        let stem = basename.isEmpty || basename == "/" ? "文件夹" : basename
+        let used = Set(rootNames.values.map { $0.precomposedStringWithCanonicalMapping.lowercased() })
+        var name = stem
+        var index = 1
+        while used.contains(name.precomposedStringWithCanonicalMapping.lowercased()) {
+            name = "\(stem)-\(index)"
+            index += 1
+        }
+        rootNames[key] = name
+        return name
     }
 
     func removeSelected() {
         guard !isExporting, let index = items.firstIndex(where: { $0.id == selectedID }) else { return }
         items.remove(at: index)
         selectedID = items.isEmpty ? nil : items[min(index, items.count - 1)].id
+        if items.isEmpty { rootNames.removeAll() }
     }
 
     func clear() {
         guard !isExporting else { return }
+        cancelImport()
         items.removeAll()
+        rootNames.removeAll()
         selectedID = nil
     }
 
     func chooseExportDirectory() {
-        guard !isExporting, !items.isEmpty, NSApp.mainWindow?.attachedSheet == nil else { return }
+        guard !isExporting, !isImporting, !items.isEmpty, NSApp.mainWindow?.attachedSheet == nil else { return }
         let snapshot = settings
-        let batch = items.map { ($0.id, $0.url) }
+        let batch = exportBatch
         let panel = NSOpenPanel()
         panel.title = "选择导出文件夹"
         panel.prompt = "导出图片"
@@ -251,12 +316,16 @@ final class AppModel {
 
     // Also used by integration tests to exercise the real batch workflow.
     func export(to directory: URL) async {
-        guard !isExporting, !items.isEmpty else { return }
+        guard !isExporting, !isImporting, !items.isEmpty else { return }
         isExporting = true
-        await performExport(to: directory, settings: settings, batch: items.map { ($0.id, $0.url) })
+        await performExport(to: directory, settings: settings, batch: exportBatch)
     }
 
-    private func performExport(to directory: URL, settings snapshot: ConversionSettings, batch: [(UUID, URL)]) async {
+    private var exportBatch: [ExportRequest] {
+        items.map { ExportRequest(id: $0.id, url: $0.url, accessRoot: $0.importRoot, relativeDirectory: $0.relativeDirectory) }
+    }
+
+    private func performExport(to directory: URL, settings snapshot: ConversionSettings, batch: [ExportRequest]) async {
         let access = directory.startAccessingSecurityScopedResource()
         defer {
             if access { directory.stopAccessingSecurityScopedResource() }
@@ -265,10 +334,12 @@ final class AppModel {
         completedCount = 0
         var successes = 0
         for index in items.indices { items[index].status = .pending }
-        for (id, url) in batch {
+        for request in batch {
+            let id = request.id
             if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .processing }
             do {
-                let result = try await ImageProcessor.shared.export(url: url, settings: snapshot, directory: directory)
+                let result = try await ImageProcessor.shared.export(url: request.url, settings: snapshot, directory: directory,
+                                                                    relativeDirectory: request.relativeDirectory, accessRoot: request.accessRoot)
                 if let index = items.firstIndex(where: { $0.id == id }) { items[index].status = .complete(result.byteCount) }
                 successes += 1
             } catch {
