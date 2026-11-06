@@ -6,6 +6,7 @@ enum L10nKey: String, CaseIterable, Sendable {
     case showInFinder
     case openProject
     case addImages
+    case addImagesHelp
     case exportAll
     case removeImage
     case clearImages

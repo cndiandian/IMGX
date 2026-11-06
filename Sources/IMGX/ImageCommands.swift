@@ -32,7 +32,7 @@ struct ImageCommands: Commands {
             Button(L10n.text(.addImages)) { actions?.add() }
                 .keyboardShortcut("o").disabled(actions?.canAdd != true)
             Button(L10n.text(.exportAll)) { actions?.export() }
-                .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
+                .keyboardShortcut("e").disabled(actions?.canExport != true)
         }
         CommandGroup(after: .pasteboard) {
             Button(L10n.text(.copyCurrentResult)) { actions?.copyResult() }

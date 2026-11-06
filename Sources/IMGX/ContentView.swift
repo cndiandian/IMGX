@@ -232,6 +232,7 @@ struct ContentView: View {
                 .font(.system(size: 14)).foregroundStyle(.secondary).padding(.top, 10)
             Button(L10n.text(.chooseImages)) { model.chooseImages() }
                 .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
+                .help(L10n.text(.addImagesHelp))
                 .padding(.top, 30)
             Text(L10n.text(.dropHint)).foregroundStyle(.secondary).padding(.top, 16)
             Text("JPG · JPEG · PNG · WebP · HEIC · PDF")
@@ -254,6 +255,7 @@ struct ContentView: View {
                 Label(L10n.text(.addImages), systemImage: "plus").frame(maxWidth: .infinity)
             }
             .controlSize(.large).disabled(model.isExporting)
+            .help(L10n.text(.addImagesHelp))
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 6) {
