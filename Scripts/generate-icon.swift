@@ -23,20 +23,12 @@ for points in [16, 32, 128, 256, 512] {
         NSColor(white: 0.88, alpha: 1).setStroke()
         board.lineWidth = 2
         board.stroke()
-        // Resolve the requested SF Symbol when available; match it with a vector fallback otherwise.
-        if let symbol = NSImage(systemSymbolName: "inset.left.half.square.dashed.micro", accessibilityDescription: nil) {
-            let configured = symbol.withSymbolConfiguration(.init(pointSize: 440, weight: .medium)) ?? symbol
-            NSColor(white: 0.18, alpha: 1).set()
-            configured.draw(in: NSRect(x: 292, y: 292, width: 440, height: 440))
-        } else {
-            NSColor(white: 0.18, alpha: 1).setStroke()
-            let outline = NSBezierPath(roundedRect: NSRect(x: 300, y: 300, width: 424, height: 424), xRadius: 52, yRadius: 52)
-            outline.lineWidth = 30
-            outline.setLineDash([34, 20], count: 2, phase: 0)
-            outline.stroke()
-            NSColor(white: 0.18, alpha: 1).setFill()
-            NSBezierPath(roundedRect: NSRect(x: 342, y: 342, width: 162, height: 340), xRadius: 20, yRadius: 20).fill()
+        guard let symbol = NSImage(systemSymbolName: "square.lefthalf.filled", accessibilityDescription: nil) else {
+            fatalError("无法加载 App 图标符号 square.lefthalf.filled")
         }
+        let configured = symbol.withSymbolConfiguration(.init(pointSize: 440, weight: .medium)) ?? symbol
+        NSColor(white: 0.18, alpha: 1).set()
+        configured.draw(in: NSRect(x: 292, y: 292, width: 440, height: 440))
         image.unlockFocus()
         guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
               let png = rep.representation(using: .png, properties: [:]) else { fatalError("图标生成失败") }
