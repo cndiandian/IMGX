@@ -51,9 +51,12 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             model.discardClipboardCache()
         }
-        .background(ClipboardPasteBridge(isEnabled: !advanced && !model.isExporting) { providers in
-            Task { await model.paste(providers) }
-        }.frame(width: 0, height: 0))
+        .background(ClipboardCommandBridge(
+            canPaste: !advanced && !model.isExporting,
+            canCopy: model.canCopyResult && !advanced,
+            paste: { providers in Task { await model.paste(providers) } },
+            copy: { Task { await model.copyCurrentResult() } }
+        ).frame(width: 0, height: 0))
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $dropTargeted) { providers in
             guard !model.isExporting else { return false }
             Task {
@@ -82,6 +85,8 @@ struct ContentView: View {
             hasImages: !model.items.isEmpty,
             export: { model.chooseExportDirectory() },
             canExport: !model.items.isEmpty && !model.isExporting && !model.isImporting,
+            copyResult: { Task { await model.copyCurrentResult() } },
+            canCopyResult: model.canCopyResult && !advanced,
             remove: { model.removeSelected() },
             clear: { model.clear() },
             canManageFiles: !model.items.isEmpty && !model.isExporting && !advanced,
@@ -165,7 +170,7 @@ struct ContentView: View {
     }
 
     private var settingsBar: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             Picker(L10n.text(.format), selection: $model.settings.format) {
                 ForEach(OutputFormat.allCases) { Text($0.rawValue).tag($0) }
             }.frame(width: 130)
@@ -189,6 +194,19 @@ struct ContentView: View {
                 .help(L10n.text(.moreSettings))
                 .popover(isPresented: $advanced) { AdvancedSettingsView(model: model, isPresented: $advanced) }
             Spacer(minLength: 0)
+            Button {
+                Task { await model.copyCurrentResult() }
+            } label: {
+                Group {
+                    if model.isCopyingResult { ProgressView().controlSize(.small) }
+                    else { Image(systemName: "doc.on.clipboard") }
+                }
+                .frame(width: 20, height: 20)
+            }
+            .buttonStyle(.bordered).controlSize(.large).focusEffectDisabled()
+            .disabled(!model.canCopyResult)
+            .accessibilityLabel(L10n.text(.copyCurrentResult))
+            .help(L10n.text(.copyResultHelp))
             Button(model.isChoosingExportDestination ? L10n.text(.chooseDestination) : model.isExporting ? L10n.text(.processedShort, String(model.completedCount), String(model.items.count)) : L10n.text(.exportCount, String(model.items.count))) {
                 NSApp.keyWindow?.makeFirstResponder(nil)
                 model.chooseExportDirectory()
@@ -259,9 +277,12 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             model.discardClipboardCache()
         }
-        .background(ClipboardPasteBridge(isEnabled: !advanced && !model.isExporting) { providers in
-            Task { await model.paste(providers) }
-        }.frame(width: 0, height: 0))
+        .background(ClipboardCommandBridge(
+            canPaste: !advanced && !model.isExporting,
+            canCopy: model.canCopyResult && !advanced,
+            paste: { providers in Task { await model.paste(providers) } },
+            copy: { Task { await model.copyCurrentResult() } }
+        ).frame(width: 0, height: 0))
                 .onChange(of: model.selectedID) { _, id in
                     if let id { proxy.scrollTo(id) }
                 }

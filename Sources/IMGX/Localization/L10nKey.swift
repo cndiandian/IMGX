@@ -75,6 +75,11 @@ enum L10nKey: String, CaseIterable, Sendable {
     case pdfFilePrefix
     case releaseToAdd
     case localOriginals
+    case copyCurrentResult
+    case copyResultHelp
+    case resultCopied
+    case copyResultFailed
+    case copyResultChanged
     case clipboardImage
     case importing
     case readingInputs

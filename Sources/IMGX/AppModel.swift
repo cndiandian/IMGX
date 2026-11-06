@@ -69,6 +69,10 @@ final class AppModel {
     private(set) var selectedPixelSize: CGSize?
     @ObservationIgnored private var selectedSource: CGImage?
     private(set) var previewLoading = false
+    private(set) var isCopyingResult = false
+    var canCopyResult: Bool {
+        selected != nil && preview != nil && !previewLoading && !isExporting && !isImporting && !isCopyingResult
+    }
     @ObservationIgnored private var previewRevision = UUID()
     @ObservationIgnored private var lastEditedWidth = true
     private(set) var completedCount = 0
@@ -79,14 +83,17 @@ final class AppModel {
     @ObservationIgnored private var toastTask: Task<Void, Never>?
     private(set) var isImporting = false
     @ObservationIgnored private let clipboardStore = ClipboardImageStore()
+    private let clipboardRenderer: any ClipboardResultPreparing
     private let importScanner: any ImageImportScanning
     @ObservationIgnored private var importTasks: [UUID: Task<ImageImportResult, Error>] = [:]
     @ObservationIgnored private var importRevision = UUID()
     @ObservationIgnored private var rootNames: [URL: String] = [:]
     var selected: ImageItem? { items.first { $0.id == selectedID } }
 
-    init(importScanner: any ImageImportScanning = ImageImportScanner.shared) {
+    init(importScanner: any ImageImportScanning = ImageImportScanner.shared,
+         clipboardRenderer: any ClipboardResultPreparing = ImageProcessor.shared) {
         self.importScanner = importScanner
+        self.clipboardRenderer = clipboardRenderer
     }
 
     var dimensionError: String? {
@@ -130,6 +137,32 @@ final class AppModel {
                 self.previewLoading = false
                 self.notify(error.localizedDescription, kind: .previewError, persistent: true)
             }
+        }
+    }
+
+    func copyCurrentResult(to pasteboard: NSPasteboard = .general) async {
+        guard canCopyResult, let snapshot = preview else { return }
+        let revision = previewRevision
+        let format = settings.format
+        let clipboardRevision = pasteboard.changeCount
+        isCopyingResult = true
+        defer { isCopyingResult = false }
+        do {
+            let result = try await clipboardRenderer.clipboardResult(snapshot, format: format)
+            guard !Task.isCancelled else { return }
+            guard previewRevision == revision, pasteboard.changeCount == clipboardRevision,
+                  !isExporting, !isImporting else {
+                notify(L10n.text(.copyResultChanged))
+                return
+            }
+            guard ClipboardExport.write(result, to: pasteboard) else {
+                notify(L10n.text(.copyResultFailed))
+                return
+            }
+            notify(L10n.text(.resultCopied))
+        } catch {
+            guard !Task.isCancelled else { return }
+            notify(L10n.text(.copyResultFailed))
         }
     }
 

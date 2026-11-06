@@ -155,10 +155,10 @@ private actor PausedClipboardScanner: ImageImportScanning {
 @MainActor @Test func systemPasteResponderValidatesImageContentAndSnapshotsPasteboard() async throws {
     let pasteboard = NSPasteboard(name: .init("IMGX-Test-" + UUID().uuidString))
     defer { pasteboard.releaseGlobally() }
-    let responder = ClipboardPasteResponder()
+    let responder = ClipboardCommandResponder()
     responder.pasteboard = pasteboard
-    responder.isEnabled = true
-    let item = NSMenuItem(title: "Paste", action: #selector(ClipboardPasteResponder.paste(_:)), keyEquivalent: "v")
+    responder.isPasteEnabled = true
+    let item = NSMenuItem(title: "Paste", action: #selector(ClipboardCommandResponder.paste(_:)), keyEquivalent: "v")
     pasteboard.clearContents()
     pasteboard.setString("320", forType: .string)
     #expect(!responder.validateUserInterfaceItem(item))
@@ -169,14 +169,14 @@ private actor PausedClipboardScanner: ImageImportScanning {
     pasteboard.setData(png, forType: .png)
     #expect(responder.validateUserInterfaceItem(item))
     var captured: [NSItemProvider] = []
-    responder.perform = { captured = $0 }
+    responder.performPaste = { captured = $0 }
     responder.paste(nil)
     // 取得快照后原剪贴板变化，不改变本次粘贴的数据。
     pasteboard.clearContents()
     pasteboard.setString("different", forType: .string)
     let snapshot = try await ClipboardImport.read(captured)
     #expect(snapshot.images == [png])
-    responder.isEnabled = false
+    responder.isPasteEnabled = false
     captured = []
     responder.paste(nil)
     #expect(captured.isEmpty)

@@ -7,6 +7,8 @@ struct ImageActions {
     var hasImages: Bool
     var export: () -> Void
     var canExport: Bool
+    var copyResult: () -> Void
+    var canCopyResult: Bool
     var remove: () -> Void
     var clear: () -> Void
     var canManageFiles: Bool
@@ -33,6 +35,8 @@ struct ImageCommands: Commands {
                 .keyboardShortcut(.return, modifiers: .command).disabled(actions?.canExport != true)
         }
         CommandGroup(after: .pasteboard) {
+            Button(L10n.text(.copyCurrentResult)) { actions?.copyResult() }
+                .disabled(actions?.canCopyResult != true)
             Divider()
             Button(L10n.text(.removeImage)) { actions?.remove() }.disabled(actions?.canManageFiles != true)
             Button(L10n.text(.clearImages)) { actions?.clear() }.disabled(actions?.canManageFiles != true)
