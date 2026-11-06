@@ -389,12 +389,12 @@ struct ContentView: View {
 
     @ViewBuilder private var toast: some View {
         if let message = model.toast, !(advanced && model.dimensionError != nil && message.kind == .previewError) {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Image(systemName: message.kind == .previewError ? "exclamationmark.triangle" : "info.circle")
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(message.text).textSelection(.enabled)
                     if let directory = message.exportDirectory {
-                        HStack(spacing: 12) {
+                        HStack(spacing: 8) {
                             Text(L10n.text(.savedTo)).foregroundStyle(.secondary).fixedSize()
                             Button { openExportDirectory(directory) } label: {
                                 Text(directory.path).underline()
@@ -404,18 +404,20 @@ struct ContentView: View {
                             .accessibilityLabel(L10n.text(.openDirectoryPath, directory.path))
                             .help(directory.path)
                             Button(L10n.text(.openDirectory)) { openExportDirectory(directory) }
-                                .buttonStyle(.bordered).focusEffectDisabled().fixedSize()
+                                .buttonStyle(.bordered).controlSize(.small).focusEffectDisabled().fixedSize()
                         }
                     }
                 }
                 .font(.system(size: 12))
                 Button { model.dismissToast() } label: {
-                    Image(systemName: "xmark").frame(width: 32, height: 32)
+                    Image(systemName: "xmark").frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel(L10n.text(.closeNotice)).help(L10n.text(.closeNotice))
                 .buttonStyle(.borderless)
             }
-            .padding(16).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(.separator.opacity(0.5)))
             .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
             .frame(maxWidth: 680)
