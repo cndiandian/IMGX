@@ -12,8 +12,10 @@ enum PDFError: LocalizedError {
     }
 }
 
-/// 每次只栅格化一页，默认 144 DPI；预览与导出共用相同的页面尺寸及变换。
+/// 每次只栅格化一页，默认 300 DPI；预览与导出共用相同的页面尺寸及变换。
 enum PDFRenderer {
+    static let defaultDPI = 300.0
+
     static func document(at url: URL) throws -> CGPDFDocument {
         guard let document = CGPDFDocument(url as CFURL) else { throw PDFError.unreadable }
         guard document.isUnlocked else { throw PDFError.locked }
@@ -31,9 +33,15 @@ enum PDFRenderer {
         let rotated = abs(page.rotationAngle % 180) == 90
         let width = rotated ? box.height : box.width
         let height = rotated ? box.width : box.height
-        var scale = 2.0
-        if let maximumDimension { scale = min(scale, Double(maximumDimension) / max(width, height)) }
-        let w = (width * scale).rounded(.up), h = (height * scale).rounded(.up)
+        // 先乘 DPI 再除以每英寸 72 点，避免整数像素因浮点误差向上取整多出一像素。
+        var pixelWidth = width * defaultDPI / 72.0
+        var pixelHeight = height * defaultDPI / 72.0
+        if let maximumDimension {
+            let scale = min(1, Double(maximumDimension) / max(pixelWidth, pixelHeight))
+            pixelWidth *= scale
+            pixelHeight *= scale
+        }
+        let w = pixelWidth.rounded(.up), h = pixelHeight.rounded(.up)
         guard w.isFinite, h.isFinite, w >= 1, h >= 1,
               w <= Double(ImageSizing.maximumDimension), h <= Double(ImageSizing.maximumDimension),
               w * h <= Double(ImageSizing.maximumPixelCount) else { throw CodecError.imageTooLarge }

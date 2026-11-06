@@ -159,7 +159,7 @@ private struct FailingClipboardRenderer: ClipboardResultPreparing {
     let data = try #require(board.data(forType: .png))
     #expect(data == expected)
     let image = try ImageCodec.decode(data)
-    #expect(image.width == 80 && image.height == 140)
+    #expect(image.width == 167 && image.height == 292)
     #expect(try Data(contentsOf: source) == original)
 }
 

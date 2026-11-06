@@ -37,13 +37,13 @@ func pdfFixture(at url: URL, sizes: [CGSize] = [CGSize(width: 120, height: 80), 
     model.settings.format = .png
     model.settings.size = .half
     try await waitForPreview(model)
-    #expect(model.preview?.original.width == 240)
-    #expect(model.preview?.decoded.width == 120)
+    #expect(model.preview?.original.width == 500)
+    #expect(model.preview?.decoded.width == 250)
     let firstPreview = try #require(model.preview?.data)
     model.selectedID = model.items[1].id
     try await waitForPreview(model)
-    #expect(model.preview?.original.width == 160)
-    #expect(model.preview?.original.height == 280)
+    #expect(model.preview?.original.width == 334)
+    #expect(model.preview?.original.height == 584)
     let secondPreview = try #require(model.preview?.data)
     await model.export(to: output)
     #expect(model.completedCount == 2)
@@ -68,13 +68,14 @@ func pdfFixture(at url: URL, sizes: [CGSize] = [CGSize(width: 120, height: 80), 
     let pdf = directory.appendingPathComponent("source.pdf")
     try pdfFixture(at: pdf)
     let image = try PDFRenderer.render(url: pdf, pageNumber: 1)
-    #expect(image.width == 240 && image.height == 160)
+    #expect(image.width == 500 && image.height == 334)
     let pixels = try #require(image.dataProvider?.data) as Data
     // PDF 的设备色彩会经过系统色彩管理，不要求与 sRGB 数值逐字节相同。
-    let redOffset = 20 * image.bytesPerRow + 20 * 4
+    let redOffset = (image.height / 2) * image.bytesPerRow + (image.width / 4) * 4
     #expect(pixels[redOffset] > 240 && pixels[redOffset + 1] < 60 && pixels[redOffset + 2] < 20)
     #expect(pixels[redOffset + 3] == 255)
-    #expect(Array(pixels[(80 * image.bytesPerRow + 180 * 4)..<(80 * image.bytesPerRow + 180 * 4 + 4)]) == [255, 255, 255, 255])
+    let whiteOffset = (image.height / 2) * image.bytesPerRow + (image.width * 3 / 4) * 4
+    #expect(Array(pixels[whiteOffset..<(whiteOffset + 4)]) == [255, 255, 255, 255])
     let document = try #require(PDFDocument(url: pdf))
     let page = try #require(document.page(at: 0))
     page.setBounds(CGRect(x: 10, y: 10, width: 60, height: 40), for: .cropBox)
@@ -82,7 +83,7 @@ func pdfFixture(at url: URL, sizes: [CGSize] = [CGSize(width: 120, height: 80), 
     let rotated = directory.appendingPathComponent("rotated.pdf")
     #expect(document.write(to: rotated))
     let raster = try PDFRenderer.render(url: rotated, pageNumber: 1)
-    #expect(raster.width == 80 && raster.height == 120)
+    #expect(raster.width == 167 && raster.height == 250)
     let thumbnail = try #require(Thumbnail.load(url: rotated, pageNumber: 1))
     #expect(thumbnail.width == 64 && thumbnail.height == 96)
     #expect(throws: PDFError.invalidPage) { try PDFRenderer.render(url: pdf, pageNumber: 0) }
