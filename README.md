@@ -207,7 +207,7 @@ python3 Scripts/test-homebrew-tap.py
 python3 Scripts/test-publish-release.py
 ```
 
-Main-branch pushes and pull requests targeting main run the unified checks without signing or notarization secrets. Tag releases use the same checks.
+GitHub Actions runs only when a `v*` tag is pushed. Pushes to main or other branches and pull requests do not trigger workflows. The release workflow runs the unified checks before building and publishing; tags must pass the `vMAJOR.MINOR.PATCH` version check.
 
 Developer ID signing, Apple notarization for the app and DMG, stapling, and Gatekeeper assessment have been verified locally. Installation on another Mac has not been verified. Passing automation does not imply complete validation of all windows, VoiceOver, complex PDFs, or large-file stress cases.
 

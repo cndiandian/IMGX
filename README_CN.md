@@ -209,7 +209,7 @@ python3 Scripts/test-homebrew-tap.py
 python3 Scripts/test-publish-release.py
 ```
 
-主分支推送及面向 main 的 PR 自动运行统一检查，不加载签名或公证 Secrets；tag 发布复用相同检查入口。
+GitHub Actions 仅在推送 `v*` tag 时运行；推送 main 或其他分支、创建或更新 PR 均不触发工作流。发布流程在编译和发布前执行统一检查，tag 还需通过 `v主版本.次版本.修订版本` 格式校验。
 
 本机已完成 Developer ID 签名、应用与 DMG 的 Apple 公证、票据装订和 Gatekeeper 验证；未在另一台 Mac 上完成安装验收。自动化通过不代表所有窗口、VoiceOver、复杂 PDF 和大文件压力场景均已验证。
 

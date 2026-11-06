@@ -379,3 +379,9 @@
 - 原中文 README 完整保留为 README_CN.md，仅增加顶部语言切换；两份文档互相链接。中文继续使用原 preview.webp，英文引用新增 docs/images/preview-en.webp。
 - 实际窗口：在当前 Release 应用的英文界面导入本机生成的 sample.png，截取真实应用窗口；将截图 preview-en.jpg 导入 IMGX，以 WebP、质量 80、原尺寸 2402×1602 导出至 docs/images。窗口显示 Exported 1/1 images，真实文件由 306532 字节降至 68558 字节，减少 77.6%。未通过其他编解码工具生成此配图。
 - 验证：确认新配图 RIFF/WEBP 签名，查看导出图像，英文控件与文字清晰完整；检查两份 README 的本地链接、代码块与折叠区块配对，确认中文正文除语言导航外与迁移前一致；`git diff --check` 通过。此次仅文档与配图变更，未重复应用回归测试或构建，未在 GitHub 远程页面进行渲染验收。仅本地中文提交，不执行 push。
+
+## Actions 仅 tag 推送触发（2026-11-06）
+
+- 移除独立 ci.yml，取消 main 分支 push 与面向 main 的 pull_request 自动检查入口。保留 release.yml 的 `push.tags: ['v*']`，及其中的版本格式校验、统一回归、编译签名公证、Release 发布和 Homebrew 同步，避免 tag 推送时重复运行检查工作流。
+- 中英文 README 同步说明仅 v* tag push 触发，普通分支推送及 PR 不触发；本地 Scripts/check.sh 继续可手动使用。
+- 自动化：actionlint 校验保留的发布工作流通过；解析全部工作流，确认仅有 release.yml、唯一事件为 push 且只有 v* tag 过滤、发布构建步骤仍包含统一测试入口；`git diff --check` 通过。本次未修改应用或脚本实现，未重复应用回归与构建。未推送 tag 或触发真实远程发布，远程生效待维护者推送本地提交。仅本地中文提交，不执行 push。
