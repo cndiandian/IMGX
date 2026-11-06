@@ -1,172 +1,172 @@
 # IMGX
 
-为 Mac 打造的本地图片压缩、格式转换与 PDF 转图片工具。
+**English** | [简体中文](README_CN.md)
 
-把图片、PDF 或整个文件夹拖进窗口，调整格式和尺寸，对比画质后批量导出。文件处理在本机完成，保留源文件。
+Local image compression, format conversion, and PDF-to-image conversion for Mac.
 
-**Apple Silicon · macOS 26+ · 原生 macOS 应用**
+Drop images, PDFs, or entire folders into IMGX, choose a format and size, compare the result, and export in batches. Your files stay on your Mac, and originals are preserved.
 
-支持 English、简体中文、繁體中文和日本語，启动时自动跟随系统首选语言；不支持的语言使用英语。更改系统或应用语言后，重新启动 IMGX 生效。
+**Apple Silicon · macOS 26+ · Native macOS app**
 
-[下载最新版](https://github.com/cndiandian/IMGX/releases/latest) · [安装说明](#下载与安装) · [快速上手](#快速上手) · [反馈问题](https://github.com/cndiandian/IMGX/issues)
+Available in English, Simplified Chinese, Traditional Chinese, and Japanese. IMGX follows your preferred system language and falls back to English for unsupported languages. Restart IMGX after changing the system or per-app language.
 
-## 界面预览
+[Download](https://github.com/cndiandian/IMGX/releases/latest) · [Installation](#installation) · [Quick start](#quick-start) · [Report an issue](https://github.com/cndiandian/IMGX/issues)
 
-![IMGX 文件列表、原图与转换结果滑杆对比，以及格式和尺寸设置](docs/images/preview.webp)
+## Preview
 
-滑动分隔线检查压缩前后的细节，也可以切换为分屏对比，同时查看实际编码后的文件大小。
+![IMGX in English, showing the file list, original/result slider comparison, and output settings](docs/images/preview-en.webp)
 
-## 主要功能
+Drag the divider to inspect compression quality, or switch to Split view. File sizes reflect the actual encoded result. This screenshot was exported to WebP using IMGX itself.
 
-- **图片压缩与转换**：批量输出 WebP、JPEG、PNG，支持质量调整和 WebP 无损模式。
-- **真实效果预览**：通过滑杆或分屏对比原图与编码结果，在导出前确认画质和体积。
-- **调整图片尺寸**：使用原尺寸、50%、25% 或自定义尺寸，保持图片比例。
-- **整文件夹处理**：递归导入图片和 PDF，导出时保留来源文件夹及子目录结构。
-- **PDF 按页导出**：每页独立预览，按页码生成图片，沿用当前格式和尺寸设置。
-- **剪贴板操作**：按 `⌘V` 粘贴截图或复制的图片，也可导入 Finder 中复制的文件；将当前转换结果复制到其他应用。
-- **保留源文件**：不覆盖原图或 PDF，遇到已有输出文件自动添加编号。
-- **快速找到结果**：导出完成后，点击保存路径或“打开目录”即可在 Finder 中查看。
+## Features
 
-功能说明对应当前仓库代码；下载版本所包含的功能请以 [Release 说明](https://github.com/cndiandian/IMGX/releases) 为准。
+- **Compress and convert:** batch export to WebP, JPEG, or PNG, with adjustable quality and lossless WebP.
+- **Compare actual results:** inspect the original and encoded image using Slider or Split view before exporting.
+- **Resize:** keep the original size, scale to 50% or 25%, or set custom dimensions while preserving aspect ratio.
+- **Process folders:** recursively import images and PDFs and preserve their folder structure on export.
+- **Convert PDF pages:** preview each page and export numbered images using the current format and size settings.
+- **Use the clipboard:** paste screenshots, copied images, or files copied in Finder; copy the current converted result to another app.
+- **Keep originals:** source images and PDFs are never overwritten. Existing output filenames receive a numeric suffix.
+- **Find your exports:** click the destination path or Open Folder in the completion notice.
 
-## 下载与安装
+This document describes the current source tree. See the [release notes](https://github.com/cndiandian/IMGX/releases) for features included in a specific download.
 
-需要 **搭载 Apple 芯片的 Mac（M 系列）** 和 **macOS 26 或更高版本**。当前不提供 Intel 版本。
+## Installation
 
-### 下载安装包
+Requires an **Apple Silicon Mac (M series)** running **macOS 26 or later**. Intel Macs are not supported.
 
-1. 前往 [GitHub Releases](https://github.com/cndiandian/IMGX/releases/latest)。
-2. 在 Assets 中下载以 `.dmg` 结尾的安装包。
-3. 打开 DMG，将 **IMGX** 拖入 **Applications（应用程序）**。
-4. 从“应用程序”中打开 IMGX。
+### Download the app
 
-### 通过 Homebrew 安装
+1. Open [GitHub Releases](https://github.com/cndiandian/IMGX/releases/latest).
+2. Download the `.dmg` file under Assets.
+3. Open it and drag **IMGX** into **Applications**.
+4. Launch IMGX from Applications.
 
-已安装 Homebrew 的用户，也可以在终端执行：
+### Install with Homebrew
 
 ```sh
 brew install --cask cndiandian/tap/imgx
 ```
 
-如果 Homebrew 提示该 Cask 来自未信任的 tap，执行以下命令后重试：
+If Homebrew reports that the cask comes from an untrusted tap, trust it and retry:
 
 ```sh
 brew trust --cask cndiandian/tap/imgx
 ```
 
-## 快速上手
+## Quick start
 
-1. **添加文件**：点击“选择图片”，或将图片、PDF、文件夹拖入窗口；可以一次添加多个；也可直接按 `⌘V` 粘贴剪贴板图片，或使用“编辑 → 粘贴”。
-2. **调整输出**：选择 WebP、JPEG 或 PNG，按需要调整质量、尺寸；更多选项在“更多设置”中。
-3. **检查画质**：在左侧选择图片或 PDF 页面，使用滑杆、分屏、缩放和平移查看细节。
-4. **导出结果**：点击“导出 N 张图片”，选择保存目录。完成后点击提示中的目录地址或“打开目录”查看结果。
+1. **Add files:** click Choose Images, drop images, PDFs, or folders into the window, or press `⌘V` to paste clipboard images or copied files. You can add multiple items at once.
+2. **Choose output settings:** select WebP, JPEG, or PNG and adjust quality and size. Additional options are under More Settings.
+3. **Inspect the result:** select an image or PDF page in the sidebar. Use Slider, Split, zoom, and pan to check details.
+4. **Export:** click Export Images and choose a destination folder. Click the path or Open Folder in the completion notice to view your files.
 
-导出会处理列表中的全部项目；当前选中项仅决定预览内容。开始导出后，本批次使用当时的参数设置。
+Export processes every item in the list. The selected item controls the preview only. Each export batch uses the settings captured when it starts.
 
-只想复制当前结果时，点击底部导出按钮左侧的剪贴板图标，或使用“编辑 → 复制当前结果” / `⌘C`。复制的是当前选中图片或 PDF 页面的编码结果，包含已设置的质量、尺寸与透明背景效果，不是原图或对比画布的截图。预览未就绪时不可复制。剪贴板包含当前格式的数据及 PNG 兼容表示，最终粘贴格式由接收应用决定。
+To copy just the current result, click the clipboard button beside Export, use Edit → Copy Current Result, or press `⌘C`. This copies the encoded image or selected PDF page with the current quality, size, and transparency settings. Copying is unavailable until the preview is ready. The clipboard contains the selected format plus a PNG-compatible representation; the receiving app chooses which to use. In text fields or selected text, `⌘C` keeps its normal text-copy behavior.
 
-粘贴图片内容时，应用会在本机创建保留透明度的临时 PNG 副本，供预览和导出使用；移除、清空列表或正常退出时会清理这些副本，不改写剪贴板内容或用户的源文件。在宽高输入框中，`⌘V` 仍用于正常粘贴文字。
+Pasted image data is stored as a local temporary PNG that preserves transparency. IMGX removes its own temporary copies when you remove the item, clear the list, or quit normally. Source files and clipboard contents are preserved. In text fields, `⌘V` pastes text normally.
 
-### 导出文件夹
+### Folder exports
 
-直接添加文件夹时，会保留它本身及内部层级。例如：
-
-```text
-导入：相册/旅行/照片.jpg
-导出：所选目录/相册/旅行/照片.webp
-```
-
-单独添加的图片放在所选目录的根目录。不同位置的同名根文件夹自动编号区分；同一图片重复添加时，保留首次导入时的层级。
-
-文件夹读取在后台进行，可点击“取消”；读取期间暂不可导出。隐藏项、软件包和符号链接会跳过，只创建成功导出图片所需的目录，不复制其他文件或空目录。
-
-### 导出 PDF
-
-PDF 导入后按页显示，每页都可以独立预览或从列表移除。导出文件按页码命名：
+Adding a folder preserves that folder and its subfolders:
 
 ```text
-说明.pdf → 说明-page-001.webp
-           说明-page-002.webp
-           …
+Input:  Album/Trip/Photo.jpg
+Output: Destination/Album/Trip/Photo.webp
 ```
 
-默认以 **300 DPI、白色背景**渲染，遵循页面裁切区域和旋转方向；尺寸选项中的“原尺寸”对应此渲染结果。更换输出格式或尺寸后，每页使用同一组设置。随文件夹添加的 PDF 同样保留来源目录层级。
+Individually added images go directly into the destination folder. Same-named root folders from different locations receive distinct numbered names. Adding a file again keeps the hierarchy from its first import.
 
-## 支持的格式与限制
+Folder scanning runs in the background and can be canceled. Export is unavailable while scanning. Hidden items, packages, and symbolic links are skipped. Only directories needed for successful exports are created; unrelated files and empty directories are not copied.
 
-| 类型 | 支持内容 |
+### PDF exports
+
+PDFs appear as individual pages, each with its own preview and removable list entry. Exported images use numbered filenames:
+
+```text
+Guide.pdf → Guide-page-001.webp
+            Guide-page-002.webp
+            …
+```
+
+Pages render at **300 DPI on a white background**, respecting crop bounds and rotation. Original size refers to this rendered image. All pages use the current output format and size settings. PDFs imported with a folder preserve its hierarchy too.
+
+## Formats and limits
+
+| Type | Support |
 | --- | --- |
-| 图片输入 | JPG、JPEG、PNG、WebP、HEIC 静态图片 |
-| 文档输入 | PDF，按页转换为图片 |
-| 图片输出 | WebP、JPEG（`.jpg`）、PNG |
-| 透明背景 | PNG、WebP 保留透明；JPEG 将透明区域铺为白色 |
-| 尺寸上限 | 输出每边不超过 16,383 像素，总像素不超过 1 亿 |
+| Image input | Static JPG, JPEG, PNG, WebP, and HEIC images |
+| Document input | PDF, converted page by page |
+| Image output | WebP, JPEG (`.jpg`), PNG |
+| Transparency | Preserved in PNG and WebP; flattened onto white for JPEG |
+| Output dimensions | Up to 16,383 pixels per edge and 100 million pixels total |
 
-目前不支持保留动态图像，不承诺完整保留 EXIF、ICC、HDR 等信息。需要保留这些信息时，请保管好源文件。列表和设置不会跨应用启动保存。
+Animation is not preserved. Complete preservation of EXIF, ICC, HDR, or other metadata is not guaranteed; keep your originals if you need this information. The file list and settings do not persist between launches.
 
-PDF 渲染后的页面也受尺寸和像素上限约束。未解锁的加密 PDF、损坏或没有页面的文档无法导入；单页预览或导出失败会提示原因，不影响其他可处理项目。
+Rendered PDF pages are subject to the same dimension and pixel limits. Locked encrypted PDFs, corrupt documents, and documents without pages cannot be imported. A page that fails to preview or export reports an error without preventing other valid items from being processed.
 
-## 更新与常见问题
+## Updates and FAQ
 
-### 如何更新？
+### How do I update?
 
-在菜单栏打开 **IMGX → 关于 IMGX → 检测更新**。检测到 GitHub 上新的正式版本后，应用会下载并校验 DMG，再打开安装镜像；将新版本拖入“应用程序”完成更新。下载和检测过程中可取消，安装包保存在“下载/IMGX”的独立目录中。
+Open **IMGX → About IMGX → Check for Updates**. When a newer stable GitHub release is available, IMGX downloads and verifies the DMG, then opens it. Drag the new app into Applications to complete installation. Checks and downloads can be canceled. Downloads are stored in separate directories under `Downloads/IMGX`.
 
-使用 Homebrew 安装的用户可以执行：
+For Homebrew installations:
 
 ```sh
 brew update
 brew upgrade --cask imgx
 ```
 
-### 图片会被上传吗？
+### Are my files uploaded?
 
-不会。图片与 PDF 在本机读取、转换和导出。主动检测更新及下载新版本时会访问 GitHub。
+No. Images and PDFs are read, converted, and exported locally. GitHub is contacted when you explicitly check for or download updates.
 
-### 会覆盖原文件吗？
+### Can IMGX overwrite my originals?
 
-不会。已有同名文件时自动添加 `-1`、`-2` 等编号。从列表移除或清空列表，也不会删除磁盘上的源文件。
+No. Existing output files get suffixes such as `-1` and `-2`. Removing or clearing list entries does not delete source files from disk.
 
-### 为什么文件不一定更小？
+### Why is the result sometimes larger?
 
-文件大小取决于图片内容、输入输出格式、尺寸和质量。转换格式或使用无损模式可能使文件变大；可以先比较预览中的编码大小，再决定是否降低质量或缩小尺寸。
+Size depends on the image content, formats, dimensions, and quality. Changing formats or using lossless compression can increase size. Compare the encoded size in the preview before adjusting quality or dimensions.
 
-### 为什么 PDF 没有显示压缩百分比？
+### Why is there no compression percentage for a PDF page?
 
-一份 PDF 可以包含多页，文档大小不能直接作为单页图片的比较基准。PDF 预览展示当前页的输出大小，侧栏标记整份 PDF 的原文件大小。
+A PDF can contain multiple pages, so its document size is not a meaningful baseline for one rendered page. The preview shows that page's output size; the sidebar shows the source PDF's total size.
 
-### 预览中的 100% 是什么意思？
+### What does 100% in the preview mean?
 
-它表示“适应窗口”后的基准比例，并非一个屏幕像素对应一个图片像素。可以滚轮或捏合缩放、拖动平移，双击画布或点击“适应窗口”复位。
+It is the baseline after fitting the image to the window, rather than a one-to-one mapping between image and screen pixels. Scroll or pinch to zoom, drag to pan, and double-click or click Fit to Window to reset.
 
-## 快捷键
+## Keyboard shortcuts
 
-| 操作 | 快捷键 |
+| Action | Shortcut |
 | --- | --- |
-| 添加图片、PDF 或文件夹 | `⌘O` |
-| 粘贴图片或复制的文件 | `⌘V` |
-| 复制当前转换结果 | `⌘C`（图片页面；输入框或选中文字时仍复制文字） |
-| 导出列表全部项目 | `⌘E` |
-| 切换 Slider / Split 对比模式 | `\`（非文字编辑状态） |
-| 适应窗口 | `⌘0` |
-| 切换文件列表的选中项 | `↑` / `↓`（主窗口内，非文字编辑或弹窗状态） |
-| 从列表移除选中项 | `Delete`（非文字编辑状态） |
+| Add images, PDFs, or folders | `⌘O` |
+| Paste images or copied files | `⌘V` |
+| Copy the current converted result | `⌘C` (text editing retains normal copy behavior) |
+| Export all list items | `⌘E` |
+| Toggle Slider / Split | `\` (outside text editing) |
+| Fit to Window | `⌘0` |
+| Select the previous / next file | `↑` / `↓` (main window, outside text editing or dialogs) |
+| Remove the selected item | `Delete` (outside text editing) |
 
-画布获得键盘焦点后，可用左右键水平平移，上下键切换文件，`+` / `-` 缩放，`0` 复位，`[` / `]` 调整对比滑杆。
+With the canvas focused, left/right arrows pan horizontally, up/down arrows select files, `+` / `-` zoom, `0` resets, and `[` / `]` move the comparison divider.
 
-## 反馈与贡献
+## Feedback and contributions
 
-遇到问题或有功能建议，欢迎提交 [Issue](https://github.com/cndiandian/IMGX/issues)。反馈时请附上 macOS 版本、IMGX 版本、复现步骤及相关截图；如需提供样本文件，请使用可公开分享的内容。
+Found a bug or have an idea? [Open an issue](https://github.com/cndiandian/IMGX/issues) with your macOS version, IMGX version, steps to reproduce, and relevant screenshots. Share sample files only if they can be made public.
 
-欢迎通过 Pull Request 参与改进。修改代码前可以先通过 Issue 讨论方案；提交前请运行下方的统一检查，并说明修改内容及验证结果。
+Pull requests are welcome. Consider discussing substantial changes in an issue first. Before submitting, run the checks below and describe your change and validation results.
 
-## 开发与验证
+## Development and verification
 
-以下内容面向希望自行构建、修改或发布 IMGX 的开发者。日常使用直接下载安装包即可。
+The following sections are for building, modifying, or releasing IMGX. For everyday use, install the app above.
 
-### 本地构建
+### Build locally
 
-需要 Apple Silicon Mac、macOS 26+、完整 Xcode 26+ 与 Swift 6.2+。项目使用 SwiftUI 与 AppKit，支持通过 Swift Package Manager 构建，也可用 Xcode 打开 `Package.swift`。
+Requires Apple Silicon, macOS 26+, full Xcode 26+, and Swift 6.2+. IMGX uses SwiftUI and AppKit. Build with Swift Package Manager or open `Package.swift` in Xcode.
 
 ```sh
 git clone https://github.com/cndiandian/IMGX.git
@@ -177,29 +177,29 @@ bash Scripts/build-app.sh
 open dist/IMGX.app
 ```
 
-`build-app.sh` 默认生成 Release 应用并使用本地临时签名，供本机开发验证；这不等于完成了正式分发签名和公证。应用位于 `dist/IMGX.app`。
+`build-app.sh` defaults to a Release build with an ad hoc signature for local testing. This is not Developer ID distribution signing or notarization. The app is written to `dist/IMGX.app`.
 
-WebP 1.6.0 和 libsharpyuv 的静态库及头文件已随仓库提供，仅含 arm64 架构。构建及运行不依赖 Homebrew 动态库；第三方许可会一并复制到应用 Resources。
+WebP 1.6.0 and libsharpyuv headers and static libraries are bundled for arm64. Building and running do not depend on Homebrew dynamic libraries. Third-party licenses are copied into the app's Resources directory.
 
 <details>
-<summary>调试选项、测试与验收范围</summary>
+<summary>Debug options, tests, and verification scope</summary>
 
 ```sh
 bash Scripts/build-app.sh debug
 bash Scripts/check.sh
 ```
 
-仅 Debug 构建支持以下环境变量，Release 不启用这些辅助入口，也不会因此改变系统设置：
+These environment variables are available only in Debug builds. They do not change system settings:
 
-| 变量 | 用途 |
+| Variable | Purpose |
 | --- | --- |
-| `IMGX_DEV_APPEARANCE=dark` / `light` | 指定应用内外观 |
-| `IMGX_DEV_SMALL_WINDOW=1` | 检查小窗口布局 |
-| `IMGX_DEV_INPUTS` | 以换行分隔的文件路径，启动时导入 |
+| `IMGX_DEV_APPEARANCE=dark` / `light` | Set the app's appearance |
+| `IMGX_DEV_SMALL_WINDOW=1` | Check the small-window layout |
+| `IMGX_DEV_INPUTS` | Import newline-separated file paths at launch |
 
-统一检查包含 46 项 Swift 测试及 25 项离线脚本测试，覆盖编码、透明通道、EXIF 方向、尺寸规则、导入去重、文件夹层级、PDF 分页与旋转、取消竞态、预览与导出一致性、文件保护、无障碍画布操作及更新校验。脚本测试模拟签名和 Apple 工具，不读取真实凭据或上传应用。
+The unified check runs 46 Swift tests and 25 offline script tests covering encoding, alpha, EXIF orientation, sizing, import deduplication, folder structure, PDF pages and rotation, cancellation races, preview/export consistency, file protection, canvas accessibility, and update verification. Script tests mock signing and Apple tools without accessing credentials or uploading the app.
 
-也可以单独执行脚本测试：
+Script tests can also run independently:
 
 ```sh
 python3 Scripts/test-build-app.py
@@ -207,50 +207,50 @@ python3 Scripts/test-homebrew-tap.py
 python3 Scripts/test-publish-release.py
 ```
 
-主分支推送及面向 main 的 PR 自动运行统一检查，不加载签名或公证 Secrets；tag 发布复用相同检查入口。
+Main-branch pushes and pull requests targeting main run the unified checks without signing or notarization secrets. Tag releases use the same checks.
 
-本机已完成 Developer ID 签名、应用与 DMG 的 Apple 公证、票据装订和 Gatekeeper 验证；未在另一台 Mac 上完成安装验收。自动化通过不代表所有窗口、VoiceOver、复杂 PDF 和大文件压力场景均已验证。
+Developer ID signing, Apple notarization for the app and DMG, stapling, and Gatekeeper assessment have been verified locally. Installation on another Mac has not been verified. Passing automation does not imply complete validation of all windows, VoiceOver, complex PDFs, or large-file stress cases.
 
 </details>
 
-### 多语言开发
+### Localization
 
-多语言实现参考 PodLilt，使用类型安全的文案键和独立 Swift 词典，位于 `Sources/IMGX/Localization`，随应用一起编译，无需额外下载语言包：
+Localization follows the PodLilt approach: type-safe keys and separate Swift dictionaries compiled into the app, under `Sources/IMGX/Localization`. No language-pack downloads are needed.
 
-| 文件 | 职责 |
+| File | Role |
 | --- | --- |
-| `AppLanguage.swift` | 支持的语言及系统语言匹配规则 |
-| `L10nKey.swift` | 全部文案键 |
-| `L10n.swift` | 词典注册、参数替换及缺失翻译时的英语回退 |
-| `English.swift` | 英语基础词典 |
-| `SimplifiedChinese.swift` | 简体中文 |
-| `TraditionalChinese.swift` | 繁體中文 |
-| `Japanese.swift` | 日本語 |
+| `AppLanguage.swift` | Supported languages and system-language matching |
+| `L10nKey.swift` | All text keys |
+| `L10n.swift` | Dictionary registry, argument replacement, English fallback |
+| `English.swift` | Base English dictionary |
+| `SimplifiedChinese.swift` | Simplified Chinese |
+| `TraditionalChinese.swift` | Traditional Chinese |
+| `Japanese.swift` | Japanese |
 
-界面和业务提示统一调用 `L10n.text(.chooseImages)`；参数化文案如 `L10n.text(.exportCount, String(count))`，词典中以 `%@` 表示参数。不要拼接带语序的翻译片段，也不要将显示文案用于标识、文件扩展名或焦点判断。
+Use `L10n.text(.chooseImages)` for UI and status text. Parameterized strings use calls such as `L10n.text(.exportCount, String(count))` and `%@` placeholders. Avoid assembling translated sentence fragments or using display text for identifiers, extensions, or focus checks.
 
-增加文案时，在 `L10nKey` 声明新键，并补齐四份词典。增加语言时，新增独立词典，在 `AppLanguage` 增加语言及匹配规则，在 `L10n.translations` 注册，并更新 `Scripts/Info.plist` 的 `CFBundleLocalizations`。英语作为默认开发语言，缺少词条时回退到英语。
+For new strings, add a key to `L10nKey` and update all four dictionaries. To add a language, create its dictionary, extend `AppLanguage` and its matching rules, register it in `L10n.translations`, and update `CFBundleLocalizations` in `Scripts/Info.plist`. English is the development language and fallback for missing entries.
 
-运行 `bash Scripts/check.sh` 检查全部语言的键完整性、参数占位符数量、地区及文字系统匹配、不支持语言回退和文件名中格式字符的安全替换。当前按系统首选语言匹配；例如 `zh-Hans` 使用简体，`zh-Hant` / `zh-TW` / `zh-HK` / `zh-MO` 使用繁体，`ja` 使用日语，`fr` 等不支持语言使用英语。
+Run `bash Scripts/check.sh` to verify dictionary completeness, placeholder counts, region/script matching, unsupported-language fallback, and safe replacement when filenames contain format characters. Examples: `zh-Hans` selects Simplified Chinese; `zh-Hant`, `zh-TW`, `zh-HK`, and `zh-MO` select Traditional Chinese; `ja` selects Japanese; unsupported preferences such as `fr` fall back to English.
 
-## 签名、公证与自动发布
+## Signing, notarization, and releases
 
 <details>
-<summary>本地 Developer ID 签名、Apple 公证与安装包生成</summary>
+<summary>Local Developer ID signing, Apple notarization, and packaging</summary>
 
-正式分发需要 Apple Developer Program 账户、完整 Xcode，以及钥匙串内带私钥的 **Developer ID Application** 证书。以下命令在项目根目录执行。
+Distribution requires Apple Developer Program membership, full Xcode, and a **Developer ID Application** certificate with its private key in Keychain. Run commands from the project root.
 
-**方式一：使用 App Store Connect API Key**
+**Option 1: App Store Connect API key**
 
-首次配置时复制示例文件，已有配置请直接使用：
+For initial setup, copy the example. Keep an existing configuration if you already have one:
 
 ```sh
 cp Scripts/release.env.example .release.env
 ```
 
-编辑 `.release.env`，填写证书名称或 SHA-1、`.p8` 文件路径、Key ID 和团队密钥的 Issuer ID。个人 API Key 不设置 Issuer ID。按需调整 `APP_VERSION` 与 `BUILD_NUMBER`（脚本默认 `0.1.0` / `1`）。
+Edit `.release.env` with the certificate name or SHA-1, `.p8` path, Key ID, and Issuer ID for a team key. Omit Issuer ID for an individual key. Adjust `APP_VERSION` and `BUILD_NUMBER` as needed; defaults are `0.1.0` and `1`.
 
-仅编译并正式签名，不上传公证：
+Build and sign without submitting for notarization:
 
 ```sh
 source .release.env
@@ -258,56 +258,56 @@ bash Scripts/build-app.sh release --sign "$CODE_SIGN_IDENTITY"
 codesign --verify --deep --strict --verbose=2 dist/IMGX.app
 ```
 
-生成正式签名且经过公证的应用、ZIP 和 DMG：
+Create a signed, notarized app, ZIP, and DMG:
 
 ```sh
 source .release.env
 bash Scripts/release.sh
 ```
 
-脚本依次编译、签名、上传 Apple 公证、装订并验证票据，对应用和 DMG 分别执行公证。它不会自动创建 GitHub Release 或更新 Homebrew。
+The script builds, signs, submits to Apple, staples, and validates tickets. The app and DMG are notarized separately. It does not create a GitHub release or update Homebrew.
 
-**方式二：使用钥匙串公证凭据**
+**Option 2: Keychain notarization credentials**
 
 ```sh
 security find-identity -v -p codesigning
-xcrun notarytool store-credentials IMGX --apple-id '你的 Apple ID' --team-id '你的 Team ID'
+xcrun notarytool store-credentials IMGX --apple-id 'YOUR_APPLE_ID' --team-id 'YOUR_TEAM_ID'
 ```
 
-第二条命令交互式提示输入 App 专用密码；不要填写 Apple ID 登录密码。也可用 API Key 保存钥匙串凭据，参数见 `xcrun notarytool store-credentials --help`。
+The second command prompts for an app-specific password, not your Apple ID login password. API keys can also be stored in Keychain; see `xcrun notarytool store-credentials --help`.
 
 ```sh
 bash Scripts/build-app.sh release \
-  --sign 'Developer ID Application: 你的姓名 (TEAMID)' \
+  --sign 'Developer ID Application: YOUR NAME (TEAMID)' \
   --notarize --profile IMGX --dmg
 ```
 
-`--sign` 支持证书名称或 SHA-1；默认值可由 `IMGX_SIGN_IDENTITY` / `CODE_SIGN_IDENTITY` 提供，钥匙串凭据名称可由 `IMGX_NOTARY_PROFILE` 提供。API Key 与钥匙串凭据两种认证方式不可同时配置；使用方式二时，应在未加载 API Key 环境变量的终端中执行。
+`--sign` accepts a certificate name or SHA-1. Defaults can come from `IMGX_SIGN_IDENTITY` / `CODE_SIGN_IDENTITY`; `IMGX_NOTARY_PROFILE` supplies the Keychain profile. API key and Keychain authentication cannot be configured together. Use option 2 in a terminal without API-key environment variables loaded.
 
-**产物与故障排查**
+**Artifacts and troubleshooting**
 
-应用输出至 `dist/IMGX.app`。每次公证在 `dist/notarization.XXXXXX/` 下保存产物和日志：
+The app is written to `dist/IMGX.app`. Each notarization run stores artifacts and logs under `dist/notarization.XXXXXX/`:
 
-| 文件 | 说明 |
+| File | Contents |
 | --- | --- |
-| `IMGX-v版本号.zip`、`.zip.sha256` | 经验证的应用压缩包及校验文件 |
-| `IMGX-v版本号.dmg`、`.dmg.sha256` | 使用 `--dmg` 或 `release.sh` 生成的安装镜像及校验文件 |
-| `app-result.json`、`app-log.json` | 应用公证结果与诊断日志 |
-| `dmg-result.json`、`dmg-log.json` | DMG 公证结果与诊断日志 |
+| `IMGX-vVERSION.zip`, `.zip.sha256` | Verified app archive and checksum |
+| `IMGX-vVERSION.dmg`, `.dmg.sha256` | Disk image and checksum, generated by `--dmg` or `release.sh` |
+| `app-result.json`, `app-log.json` | App notarization result and diagnostics |
+| `dmg-result.json`, `dmg-log.json` | DMG notarization result and diagnostics |
 
-只有公证为 `Accepted`、票据及签名、Gatekeeper 检查通过后，才将对应产物视为可分发文件。`IMGX-upload.zip` 是上传中间文件。
+Distribute only artifacts with Accepted notarization and successful ticket, signature, and Gatekeeper checks. `IMGX-upload.zip` is an intermediate upload archive.
 
-默认每次等待公证 30 分钟，可用 `--timeout 60m` 调整。票据服务临时失败时最多尝试 4 次。超时不代表 Apple 已取消处理；保留提交 ID，使用相同凭据查询：
+The default notarization wait is 30 minutes; adjust with `--timeout 60m`. Temporary stapling failures retry up to four times. A timeout does not cancel Apple's processing. Keep the submission ID and query it with the same credentials:
 
 ```sh
-xcrun notarytool info '提交 ID' --keychain-profile IMGX
-xcrun notarytool wait '提交 ID' --keychain-profile IMGX --timeout 60m
-xcrun notarytool log '提交 ID' --keychain-profile IMGX '日志文件.json'
+xcrun notarytool info 'SUBMISSION_ID' --keychain-profile IMGX
+xcrun notarytool wait 'SUBMISSION_ID' --keychain-profile IMGX --timeout 60m
+xcrun notarytool log 'SUBMISSION_ID' --keychain-profile IMGX 'log.json'
 ```
 
-API Key 方式改用 `--key`、`--key-id` 和团队密钥所需的 `--issuer` 参数。不要将未通过验证的中间产物当作最终安装包。
+For API-key authentication, use `--key`, `--key-id`, and `--issuer` when required for team keys. Do not distribute unverified intermediate artifacts.
 
-如需手动恢复，应仅对同一次构建且未被修改的应用装订和验证，再重新生成压缩包；也可重新执行完整发布流程：
+For manual recovery, staple and verify only the unchanged app from the same build before recreating archives, or rerun the full release process:
 
 ```sh
 xcrun stapler staple dist/IMGX.app
@@ -315,79 +315,79 @@ xcrun stapler validate dist/IMGX.app
 spctl --assess --type execute --verbose=2 dist/IMGX.app
 ```
 
-`.release.env`、`.p8` 和 `.p12` 已加入 Git 忽略规则；不要将密码或私钥提交到仓库。Apple 流程参考：[自定义公证工作流](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow)。
+`.release.env`, `.p8`, and `.p12` are Git-ignored. Keep passwords and private keys out of the repository. See Apple's [custom notarization workflow documentation](https://developer.apple.com/documentation/security/customizing-the-notarization-workflow).
 
 </details>
 
 <details>
-<summary>GitHub Actions 发布与 Homebrew 自动同步</summary>
+<summary>GitHub Actions releases and Homebrew synchronization</summary>
 
-发布工作流为 `.github/workflows/release.yml`。推送 `v主版本.次版本.修订版本` 格式的 tag 后，工作流测试、编译、签名、公证，再创建 GitHub Release，发布 ZIP、DMG 和对应 SHA-256 文件。普通分支推送及仅在本地创建 tag 不会触发发布，不接受带 `-beta` 等后缀的 tag。
+The release workflow is `.github/workflows/release.yml`. Pushing a tag in `vMAJOR.MINOR.PATCH` format runs tests, builds, signs, notarizes, and publishes a GitHub release with ZIP, DMG, and SHA-256 files. Branch pushes and local-only tags do not publish releases. Prerelease suffixes such as `-beta` are not accepted.
 
-**配置签名与公证 Secrets**
+**Signing and notarization secrets**
 
-在 [仓库 Actions Secrets](https://github.com/cndiandian/IMGX/settings/secrets/actions) 添加以下五项：
+Add these five entries in [Actions Secrets](https://github.com/cndiandian/IMGX/settings/secrets/actions):
 
-| Secret | 内容 |
+| Secret | Value |
 | --- | --- |
-| `APPLE_CERTIFICATE_P12_BASE64` | 带私钥的 Developer ID Application 证书 P12 的 Base64 |
-| `APPLE_CERTIFICATE_PASSWORD` | P12 导出密码 |
-| `APP_STORE_CONNECT_API_KEY_BASE64` | App Store Connect `.p8` 文件的 Base64 |
-| `APP_STORE_CONNECT_API_KEY_ID` | 对应 Key ID |
-| `APP_STORE_CONNECT_API_ISSUER_ID` | 对应团队密钥的 Issuer ID |
+| `APPLE_CERTIFICATE_P12_BASE64` | Base64 of the Developer ID Application P12, including its private key |
+| `APPLE_CERTIFICATE_PASSWORD` | P12 export password |
+| `APP_STORE_CONNECT_API_KEY_BASE64` | Base64 of the App Store Connect `.p8` file |
+| `APP_STORE_CONNECT_API_KEY_ID` | Matching Key ID |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID for the team key |
 
-在“钥匙串访问 → 我的证书”中，选择 Developer ID Application 证书及其私钥，导出为 `.p12` 并设置密码；仅导出 `.cer` 不能用于签名。GitHub Secrets 的旧值无法读回，需要保留原始文件和配置。
+In Keychain Access → My Certificates, export the Developer ID Application certificate and private key as a password-protected `.p12`. A `.cer` alone cannot sign apps. Existing GitHub Secret values cannot be read back; retain your original files and configuration.
 
-可用以下命令把 Base64 复制到剪贴板，再粘贴到对应 Secret：
+Copy Base64 to the clipboard, then paste into the matching secret:
 
 ```sh
-base64 -i '/路径/DeveloperID.p12' | tr -d '\n' | pbcopy
-base64 -i '/路径/AuthKey_KEYID.p8' | tr -d '\n' | pbcopy
+base64 -i '/path/DeveloperID.p12' | tr -d '\n' | pbcopy
+base64 -i '/path/AuthKey_KEYID.p8' | tr -d '\n' | pbcopy
 ```
 
-将密码和私钥填写到 Secrets，不要写入 YAML、Actions Variables 或 Issue。runner 使用临时钥匙串，任务结束或失败时清理签名材料；编译 job 仅有代码读取权限，独立发布 job 才获得当前仓库的内容写入权限。
+Use Secrets for passwords and private keys, never YAML, Actions Variables, or issues. The runner uses a temporary Keychain and cleans up signing material on completion or failure. The build job has read access; only the separate publishing job gets repository content write access.
 
-**配置 Homebrew 同步**
+**Homebrew synchronization**
 
-Release 发布成功后，独立 job 下载已发布 DMG 并验证 SHA-256，更新 `cndiandian/homebrew-tap` 默认分支的 `Casks/imgx.rb`。需额外添加第六项 Secret：`HOMEBREW_TAP_TOKEN`。
+After publication, a separate job downloads the released DMG, verifies SHA-256, and updates `Casks/imgx.rb` on the default branch of `cndiandian/homebrew-tap`. Add a sixth secret: `HOMEBREW_TAP_TOKEN`.
 
-1. 打开 [Fine-grained token 创建页面](https://github.com/settings/personal-access-tokens/new)，选择有权管理 tap 的 Resource owner，并设置到期时间。
-2. Repository access 选择 **Only select repositories → homebrew-tap**。
-3. Repository permissions 中仅将 **Contents** 设置为 **Read and write**，Metadata 保留默认读取权限。
-4. 将生成的 token 保存到 IMGX 仓库的 `HOMEBREW_TAP_TOKEN` Secret，不要写入代码。
+1. Create a [fine-grained token](https://github.com/settings/personal-access-tokens/new) with the appropriate resource owner and expiration.
+2. Under Repository access, choose **Only select repositories → homebrew-tap**.
+3. Grant repository **Contents: Read and write**, keeping Metadata at its default read access.
+4. Store the token in the IMGX repository's `HOMEBREW_TAP_TOKEN` secret.
 
-当前工作流的 `GITHUB_TOKEN` 不能直接用于写入另一个 tap 仓库。若 fork 项目，需要同步修改工作流和同步脚本中的发布仓库、tap 地址及权限配置。
+The workflow's `GITHUB_TOKEN` cannot write to a separate tap repository. Forks must update repository references, tap settings, and permissions in the workflow and synchronization script.
 
-**创建发布版本**
+**Publish a version**
 
-以下是维护者手动发布时的命令示例，执行前应确认提交、版本号与 Secrets 已准备完毕，并将示例版本换成未发布的新版本：
+These are examples for maintainers to run manually after checking the commit, version, and secrets. Replace the example with a new, unpublished version:
 
 ```sh
 git push origin main
-git tag -a v0.2.0 -m '发布 IMGX 0.2.0'
+git tag -a v0.2.0 -m 'Release IMGX 0.2.0'
 git push origin v0.2.0
 ```
 
-版本号从 tag 写入应用，构建号使用 Actions 的 run number。不要删除或强制移动已发布的 tag。
+The app version comes from the tag; the build number uses the Actions run number. Do not delete or force-move published tags.
 
-**检查结果与失败恢复**
+**Check results and recover failures**
 
-在 [Actions](https://github.com/cndiandian/IMGX/actions) 查看编译、公证、发布及 tap 更新结果。失败时优先选择 **Re-run failed jobs**；公证日志与分发产物 Artifact 默认保留 14 天。
+Inspect build, notarization, publication, and tap results in [Actions](https://github.com/cndiandian/IMGX/actions). Prefer **Re-run failed jobs**. Notarization logs and distribution artifacts are retained for 14 days by default.
 
-发布 job 先创建或继续草稿，上传并校验四个附件的摘要后公开。网络中断后可继续同一草稿；已发布且产物完全一致时跳过重复发布，产物不一致时停止，不覆盖公开附件。避免全部重跑后重新签名造成产物变化。
+The publishing job creates or resumes a draft, uploads and verifies four assets, then makes it public. Interrupted drafts can resume. If an existing release has identical artifacts, publication is skipped; mismatched artifacts stop the job without replacing public assets. Avoid rebuilding and re-signing all jobs unnecessarily, which can change artifacts.
 
-Homebrew 内容相同时不重复提交；tap 中 IMGX 版本高于本次 tag 时跳过，防止旧任务将其降级；内容 SHA 冲突会重新读取版本后重试。只有 tap 更新失败时，GitHub Release 仍有效，修复 token 后重跑该失败 job 即可。
+Unchanged Homebrew content produces no new commit. If the tap version is newer than the tag, synchronization is skipped to prevent downgrades. Content-SHA conflicts retry after rereading the version. A tap-only failure does not invalidate the GitHub release; fix the token and rerun that job.
 
-可离线预览将生成的 Cask，不写入 GitHub：
+Preview the generated cask offline without writing to GitHub:
 
 ```sh
-TAP_DRY_RUN=1 python3 Scripts/update-homebrew-tap.py 0.2.0 /路径/IMGX-v0.2.0.dmg
+TAP_DRY_RUN=1 python3 Scripts/update-homebrew-tap.py 0.2.0 /path/IMGX-v0.2.0.dmg
 ```
 
 </details>
 
-## 许可证与致谢
+## License and acknowledgments
 
-IMGX 采用 [MIT 许可证](LICENSE)。使用、修改与分发时，请保留许可证中的版权及许可声明。
+IMGX is released under the [MIT License](LICENSE). Retain its copyright and permission notice when using, modifying, or distributing it.
 
-感谢 [libwebp](https://chromium.googlesource.com/webm/libwebp/) 提供 WebP 编解码能力。仓库包含的 WebP 与 libsharpyuv 遵循其各自适用的第三方许可，见 [Vendor/WebP/LICENSE](Vendor/WebP/LICENSE) 与 [AUTHORS](Vendor/WebP/AUTHORS)，不因 IMGX 的 MIT 许可证而改变。
+Thanks to [libwebp](https://chromium.googlesource.com/webm/libwebp/) for WebP encoding and decoding. Bundled WebP and libsharpyuv remain subject to their applicable third-party licenses; see [Vendor/WebP/LICENSE](Vendor/WebP/LICENSE) and [AUTHORS](Vendor/WebP/AUTHORS).
