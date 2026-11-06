@@ -37,7 +37,7 @@ enum SimplifiedChineseTranslations {
         .zoomOut: "缩小预览",
         .revealOriginal: "增加原图可见范围",
         .revealOutput: "增加转换结果可见范围",
-        .canvasHelp: "滚轮或捏合缩放，拖动平移，双击或 0 复位。方向键平移，+ 和 - 缩放，[ 和 ] 调整滑杆。",
+        .canvasHelp: "滚轮或捏合缩放，拖动平移，双击或 0 复位。上下键切换文件，左右键平移，+ 和 - 缩放，[ 和 ] 调整滑杆。",
         .pending: "待转换",
         .processing: "转换中…",
         .chooseInput: "选择图片、PDF 或文件夹",

@@ -30,3 +30,28 @@ import Foundation
     #expect(model.items.isEmpty && model.selectedID == nil)
     for url in urls { #expect(FileManager.default.fileExists(atPath: url.path)) }
 }
+
+@MainActor @Test func selectionNavigationClampsAndPreservesSelectionDuringExport() async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let model = AppModel()
+    model.moveSelection(1)
+    #expect(model.selectedID == nil)
+    let urls = ["first.png", "second.png", "third.png"].map { directory.appendingPathComponent($0) }
+    for url in urls { try Data("broken image".utf8).write(to: url) }
+    await model.add(urls)
+    model.moveSelection(-1)
+    #expect(model.selected?.url == urls[0])
+    model.moveSelection(1)
+    #expect(model.selected?.url == urls[1])
+    model.moveSelection(1)
+    model.moveSelection(1)
+    #expect(model.selected?.url == urls[2])
+    model.isExporting = true
+    model.moveSelection(-1)
+    #expect(model.selected?.url == urls[2])
+    model.isExporting = false
+    model.moveSelection(-1)
+    #expect(model.selected?.url == urls[1])
+}

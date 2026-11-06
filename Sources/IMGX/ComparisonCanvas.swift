@@ -210,8 +210,6 @@ final class ComparisonView: NSView {
         switch event.keyCode {
         case 123: offset.x -= 20
         case 124: offset.x += 20
-        case 125: offset.y += 20
-        case 126: offset.y -= 20
         case 51, 117: remove?()
         default:
             switch event.charactersIgnoringModifiers {

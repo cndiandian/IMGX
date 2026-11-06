@@ -37,7 +37,7 @@ enum TraditionalChineseTranslations {
         .zoomOut: "縮小預覽",
         .revealOriginal: "顯示更多原圖",
         .revealOutput: "顯示更多轉換結果",
-        .canvasHelp: "捲動或捏合縮放，拖曳平移，按兩下或 0 重設。方向鍵平移，+ 和 - 縮放，[ 和 ] 調整滑桿。",
+        .canvasHelp: "捲動或捏合縮放，拖曳平移，按兩下或 0 重設。上下鍵切換檔案，左右鍵平移，+ 和 - 縮放，[ 和 ] 調整滑桿。",
         .pending: "待轉換",
         .processing: "轉換中…",
         .chooseInput: "選擇圖片、PDF 或資料夾",

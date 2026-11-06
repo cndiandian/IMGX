@@ -423,7 +423,7 @@ final class AppModel {
     }
 
     func moveSelection(_ delta: Int) {
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty, !isExporting else { return }
         let index = items.firstIndex { $0.id == selectedID } ?? 0
         selectedID = items[max(0, min(items.count - 1, index + delta))].id
     }

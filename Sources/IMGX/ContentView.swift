@@ -40,6 +40,8 @@ struct ContentView: View {
         .background(KeyboardBridge(
             isEditing: advanced,
             remove: { model.removeSelected() },
+            canMoveSelection: !model.items.isEmpty && !model.isExporting,
+            moveSelection: { model.moveSelection($0) },
             canToggleComparison: !model.items.isEmpty,
             toggleComparison: { comparisonMode = comparisonMode == .slider ? .split : .slider }
         ).frame(width: 0, height: 0))
@@ -278,8 +280,6 @@ struct ContentView: View {
                 .focusable()
                 .focused($sidebarFocused)
                 .focusEffectDisabled()
-                .onKeyPress(.upArrow) { model.moveSelection(-1); return .handled }
-                .onKeyPress(.downArrow) { model.moveSelection(1); return .handled }
                 .onDeleteCommand { if !advanced { model.removeSelected() } }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
             model.discardClipboardCache()

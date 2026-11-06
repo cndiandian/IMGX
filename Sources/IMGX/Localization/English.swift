@@ -37,7 +37,7 @@ enum EnglishTranslations {
         .zoomOut: "Zoom Out",
         .revealOriginal: "Reveal More of Original",
         .revealOutput: "Reveal More of Result",
-        .canvasHelp: "Scroll or pinch to zoom, drag to pan, double-click or press 0 to reset. Arrow keys pan, + and - zoom, [ and ] move the slider.",
+        .canvasHelp: "Scroll or pinch to zoom, drag to pan, double-click or press 0 to reset. Up/down select files, left/right pan, + and - zoom, [ and ] move the slider.",
         .pending: "Pending",
         .processing: "Converting…",
         .chooseInput: "Choose Images, PDFs or Folders",
