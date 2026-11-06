@@ -37,7 +37,12 @@ struct ContentView: View {
                 windowDragArea.frame(height: 54)
             }
         }
-        .background(KeyboardBridge(isEditing: advanced, remove: { model.removeSelected() }).frame(width: 0, height: 0))
+        .background(KeyboardBridge(
+            isEditing: advanced,
+            remove: { model.removeSelected() },
+            canToggleComparison: !model.items.isEmpty,
+            toggleComparison: { comparisonMode = comparisonMode == .slider ? .split : .slider }
+        ).frame(width: 0, height: 0))
         .blur(radius: dropTargeted && !model.isExporting ? 2 : 0)
         .overlay(alignment: .bottom) {
             if model.isImporting {

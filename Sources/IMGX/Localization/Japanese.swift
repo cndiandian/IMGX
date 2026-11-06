@@ -12,6 +12,7 @@ enum JapaneseTranslations {
         .removeImage: "選択した画像を除く",
         .clearImages: "画像リストを空にする",
         .comparison: "比較方法",
+        .toggleComparisonHelp: "スライダーと分割表示を切り替え（\\）",
         .fit: "ウインドウに合わせる",
         .moreImageSettings: "画像の詳細設定",
         .moreSettings: "詳細設定",

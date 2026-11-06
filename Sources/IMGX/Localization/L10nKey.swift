@@ -11,6 +11,7 @@ enum L10nKey: String, CaseIterable, Sendable {
     case removeImage
     case clearImages
     case comparison
+    case toggleComparisonHelp
     case fit
     case moreImageSettings
     case moreSettings

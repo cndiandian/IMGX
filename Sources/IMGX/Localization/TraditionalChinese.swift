@@ -12,6 +12,7 @@ enum TraditionalChineseTranslations {
         .removeImage: "移除所選圖片",
         .clearImages: "清空圖片列表",
         .comparison: "比較方式",
+        .toggleComparisonHelp: "切換滑桿與分割模式（\\）",
         .fit: "符合視窗",
         .moreImageSettings: "更多影像設定",
         .moreSettings: "更多設定",

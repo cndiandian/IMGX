@@ -12,6 +12,7 @@ enum EnglishTranslations {
         .removeImage: "Remove Selected Image",
         .clearImages: "Clear Image List",
         .comparison: "Comparison",
+        .toggleComparisonHelp: "Switch between Slider and Split (\\)",
         .fit: "Fit to Window",
         .moreImageSettings: "More Image Settings",
         .moreSettings: "More Settings",

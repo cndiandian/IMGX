@@ -1,17 +1,26 @@
 import SwiftUI
 import AppKit
 
-/// Handles file deletion only when a text editor or modal panel does not own focus.
+/// Handles image shortcuts only when a text editor or modal panel does not own focus.
 struct KeyboardBridge: NSViewRepresentable {
     var isEditing: Bool
     var remove: () -> Void
+    var canToggleComparison: Bool
+    var toggleComparison: () -> Void
     func makeNSView(context: Context) -> KeyboardMonitorView { KeyboardMonitorView() }
-    func updateNSView(_ view: KeyboardMonitorView, context: Context) { view.remove = remove; view.isEditing = isEditing }
+    func updateNSView(_ view: KeyboardMonitorView, context: Context) {
+        view.remove = remove
+        view.isEditing = isEditing
+        view.canToggleComparison = canToggleComparison
+        view.toggleComparison = toggleComparison
+    }
     static func dismantleNSView(_ view: KeyboardMonitorView, coordinator: ()) { view.stop() }
 }
 
 final class KeyboardMonitorView: NSView {
     var remove: (() -> Void)?
+    var canToggleComparison = false
+    var toggleComparison: (() -> Void)?
     var isEditing = false
     private var monitor: Any?
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
@@ -32,12 +41,19 @@ final class KeyboardMonitorView: NSView {
                 }
                 return event
             }
-            guard [51, 117].contains(Int(event.keyCode)),
-                  event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
+            guard event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
                   editing == nil, !self.isEditing, !(window.firstResponder is NSTextField),
                   !(window.firstResponder is NSTextInputClient) else { return event }
-            self.remove?()
-            return nil
+            if self.canToggleComparison, event.characters == "\\",
+               event.modifierFlags.intersection(.shift).isEmpty {
+                if !event.isARepeat { self.toggleComparison?() }
+                return nil
+            }
+            if [51, 117].contains(Int(event.keyCode)) {
+                self.remove?()
+                return nil
+            }
+            return event
         }
     }
     func stop() {

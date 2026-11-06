@@ -10,6 +10,7 @@ struct ComparisonPicker: NSViewRepresentable {
         control.segmentStyle = .rounded
         control.selectedSegmentBezelColor = .darkGray
         control.setAccessibilityLabel(L10n.text(.comparison))
+        control.toolTip = L10n.text(.toggleComparisonHelp)
         for index in ComparisonMode.allCases.indices { control.setWidth(58, forSegment: index) }
         return control
     }
