@@ -385,3 +385,9 @@
 - 移除独立 ci.yml，取消 main 分支 push 与面向 main 的 pull_request 自动检查入口。保留 release.yml 的 `push.tags: ['v*']`，及其中的版本格式校验、统一回归、编译签名公证、Release 发布和 Homebrew 同步，避免 tag 推送时重复运行检查工作流。
 - 中英文 README 同步说明仅 v* tag push 触发，普通分支推送及 PR 不触发；本地 Scripts/check.sh 继续可手动使用。
 - 自动化：actionlint 校验保留的发布工作流通过；解析全部工作流，确认仅有 release.yml、唯一事件为 push 且只有 v* tag 过滤、发布构建步骤仍包含统一测试入口；`git diff --check` 通过。本次未修改应用或脚本实现，未重复应用回归与构建。未推送 tag 或触发真实远程发布，远程生效待维护者推送本地提交。仅本地中文提交，不执行 push。
+
+## Actions 产物步骤迁移 Node.js 24（2026-11-06）
+
+- 用户提供的 Complete job 警告来自 upload-artifact v4 的 Node.js 20 运行时声明，runner 正强制使用 Node.js 24；此警告本身不等于编译或发布失败。
+- 两处 upload-artifact 升级至官方 v6.0.0，download-artifact 同步升级至官方 v7.0.0，均显式声明 node24。通过官方仓库 ls-remote 核实 tag 提交 SHA，继续使用完整 SHA 固定引用；既有产物名称、路径、保留天数及仅 tag 触发条件保持不变。
+- 验证：核对官方版本说明与 action.yml，现用输入均受支持；actionlint 与 `git diff --check` 通过。此次仅工作流依赖升级，未重复应用构建与测试，未触发远程 Actions；已存在 tag 的重跑仍使用该 tag 中的旧配置，修复需包含在后续发布提交中。仅本地中文提交，不执行 push。
