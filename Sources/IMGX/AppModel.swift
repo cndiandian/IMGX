@@ -78,6 +78,7 @@ final class AppModel {
     private(set) var toast: ToastMessage?
     @ObservationIgnored private var toastTask: Task<Void, Never>?
     private(set) var isImporting = false
+    @ObservationIgnored private let clipboardStore = ClipboardImageStore()
     private let importScanner: any ImageImportScanning
     @ObservationIgnored private var importTasks: [UUID: Task<ImageImportResult, Error>] = [:]
     @ObservationIgnored private var importRevision = UUID()
@@ -204,10 +205,31 @@ final class AppModel {
     }
 
     func add(_ urls: [URL]) async {
-        guard !isExporting, !urls.isEmpty else { return }
+        guard !urls.isEmpty else { return }
+        await performImport { try await self.importScanner.scan(urls) }
+    }
+
+    func paste(_ providers: [NSItemProvider]) async {
+        guard !providers.isEmpty else { return }
+        await performImport {
+            let input = try await ClipboardImport.read(providers)
+            let prepared = try await ImageProcessor.shared.prepareClipboard(input.images, store: self.clipboardStore,
+                                                                            name: L10n.text(.clipboardImage))
+            var imported = false
+            defer { if !imported || Task.isCancelled { self.clipboardStore.discard(prepared.urls) } }
+            var result = try await self.importScanner.scan(input.files + prepared.urls)
+            try Task.checkCancellation()
+            result.unreadable += input.unreadable + prepared.unreadable
+            imported = true
+            return result
+        }
+    }
+
+    private func performImport(_ operation: @escaping @MainActor () async throws -> ImageImportResult) async {
+        guard !isExporting else { return }
         let id = UUID()
         let revision = importRevision
-        let task = Task { try await importScanner.scan(urls) }
+        let task = Task { try await operation() }
         importTasks[id] = task
         isImporting = true
         defer {
@@ -217,7 +239,10 @@ final class AppModel {
         do {
             let result = try await withTaskCancellationHandler(operation: { try await task.value },
                                                               onCancel: { task.cancel() })
-            guard !Task.isCancelled, importRevision == revision else { return }
+            guard !Task.isCancelled, importRevision == revision else {
+                clipboardStore.discard(result.images.map(\.url))
+                return
+            }
             append(result)
         } catch is CancellationError {
             // 取消导入保留之前已添加的图片。
@@ -225,6 +250,11 @@ final class AppModel {
             guard importRevision == revision else { return }
             notify(L10n.text(.importFailed, error.localizedDescription))
         }
+    }
+
+    func discardClipboardCache() {
+        cancelImport()
+        clipboardStore.discardAll()
     }
 
     func cancelImport() {
@@ -283,7 +313,8 @@ final class AppModel {
 
     func removeSelected() {
         guard !isExporting, let index = items.firstIndex(where: { $0.id == selectedID }) else { return }
-        items.remove(at: index)
+        let removed = items.remove(at: index)
+        clipboardStore.discard([removed.url])
         selectedID = items.isEmpty ? nil : items[min(index, items.count - 1)].id
         if items.isEmpty { rootNames.removeAll() }
     }
@@ -291,6 +322,7 @@ final class AppModel {
     func clear() {
         guard !isExporting else { return }
         cancelImport()
+        clipboardStore.discard(items.map(\.url))
         items.removeAll()
         rootNames.removeAll()
         selectedID = nil

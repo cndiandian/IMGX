@@ -48,6 +48,12 @@ struct ContentView: View {
             if dropTargeted && !model.isExporting { dropOverlay }
         }
         .onDeleteCommand { if !advanced { model.removeSelected() } }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            model.discardClipboardCache()
+        }
+        .background(ClipboardPasteBridge(isEnabled: !advanced && !model.isExporting) { providers in
+            Task { await model.paste(providers) }
+        }.frame(width: 0, height: 0))
         .onDrop(of: [UTType.fileURL.identifier], isTargeted: $dropTargeted) { providers in
             guard !model.isExporting else { return false }
             Task {
@@ -250,6 +256,12 @@ struct ContentView: View {
                 .onKeyPress(.upArrow) { model.moveSelection(-1); return .handled }
                 .onKeyPress(.downArrow) { model.moveSelection(1); return .handled }
                 .onDeleteCommand { if !advanced { model.removeSelected() } }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+            model.discardClipboardCache()
+        }
+        .background(ClipboardPasteBridge(isEnabled: !advanced && !model.isExporting) { providers in
+            Task { await model.paste(providers) }
+        }.frame(width: 0, height: 0))
                 .onChange(of: model.selectedID) { _, id in
                     if let id { proxy.scrollTo(id) }
                 }
