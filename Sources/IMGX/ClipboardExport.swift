@@ -31,6 +31,7 @@ extension ImageProcessor: ClipboardResultPreparing {
             case .webp: type = .webP
             case .jpeg: type = .jpeg
             case .png: type = .png
+            case .gif: type = .gif
             }
             var representations = [type.identifier: preview.data]
             if format != .png {

@@ -1,5 +1,7 @@
 module CWebP {
     header "../../Vendor/WebP/include/webp/encode.h"
     header "../../Vendor/WebP/include/webp/decode.h"
+    header "../../Vendor/WebP/include/webp/mux.h"
+    header "../../Vendor/WebP/include/webp/demux.h"
     export *
 }

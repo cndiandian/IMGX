@@ -11,7 +11,7 @@ let package = Package(
     targets: [
         .systemLibrary(name: "CWebP"),
         .executableTarget(name: "IMGX", dependencies: ["CWebP"], linkerSettings: [
-            .unsafeFlags(["\(root)/Vendor/WebP/lib/libwebp.a", "\(root)/Vendor/WebP/lib/libsharpyuv.a"])
+            .unsafeFlags(["\(root)/Vendor/WebP/lib/libwebpmux.a", "\(root)/Vendor/WebP/lib/libwebpdemux.a", "\(root)/Vendor/WebP/lib/libwebp.a", "\(root)/Vendor/WebP/lib/libsharpyuv.a"])
         ]),
         .testTarget(name: "IMGXTests", dependencies: ["IMGX"])
     ]

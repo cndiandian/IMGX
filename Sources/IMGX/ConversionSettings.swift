@@ -21,7 +21,7 @@ enum ImageSizing {
 }
 
 enum OutputFormat: String, CaseIterable, Identifiable, Sendable {
-    case webp = "WebP", jpeg = "JPEG", png = "PNG"
+    case webp = "WebP", jpeg = "JPEG", png = "PNG", gif = "GIF"
     var id: Self { self }
     var fileExtension: String { self == .jpeg ? "jpg" : rawValue.lowercased() }
 }
@@ -47,6 +47,8 @@ struct ConversionSettings: Equatable, Sendable {
     var width: String = ""
     var height: String = ""
     var usesQuality: Bool { format == .jpeg || (format == .webp && !lossless) }
+
+    var qualityLabel: String { format == .gif ? "—" : usesQuality ? "\(Int(quality))" : L10n.text(.lossless) }
 
     func outputSize(width sourceWidth: Int, height sourceHeight: Int) throws -> (Int, Int) {
         guard sourceWidth > 0, sourceHeight > 0 else { throw CodecError.invalidDimensions }

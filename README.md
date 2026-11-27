@@ -20,7 +20,7 @@ Drag the divider to inspect compression quality, or switch to Split view. File s
 
 ## Features
 
-- **Compress and convert:** batch export to WebP, JPEG, or PNG, with adjustable quality and lossless WebP.
+- **Compress and convert:** batch export to WebP, JPEG, PNG, or GIF, with adjustable quality and lossless WebP.
 - **Compare actual results:** inspect the original and encoded image using Slider or Split view before exporting.
 - **Resize:** keep the original size, scale to 50% or 25%, or set custom dimensions while preserving aspect ratio.
 - **Process folders:** recursively import images and PDFs and preserve their folder structure on export.
@@ -57,7 +57,7 @@ brew trust --cask cndiandian/tap/imgx
 ## Quick start
 
 1. **Add files:** click Choose Images, drop images, PDFs, or folders into the window, or press `⌘V` to paste clipboard images or copied files. You can add multiple items at once.
-2. **Choose output settings:** select WebP, JPEG, or PNG and adjust quality and size. Additional options are under More Settings.
+2. **Choose output settings:** select WebP, JPEG, PNG, or GIF and adjust quality and size. Additional options are under More Settings.
 3. **Inspect the result:** select an image or PDF page in the sidebar. Use Slider, Split, zoom, and pan to check details.
 4. **Export:** click Export Images and choose a destination folder. Click the path or Open Folder in the completion notice to view your files.
 
@@ -65,7 +65,7 @@ Export processes every item in the list. The selected item controls the preview 
 
 To copy just the current result, click the clipboard button beside Export, use Edit → Copy Current Result, or press `⌘C`. This copies the encoded image or selected PDF page with the current quality, size, and transparency settings. Copying is unavailable until the preview is ready. The clipboard contains the selected format plus a PNG-compatible representation; the receiving app chooses which to use. In text fields or selected text, `⌘C` keeps its normal text-copy behavior.
 
-Pasted image data is stored as a local temporary PNG that preserves transparency. IMGX removes its own temporary copies when you remove the item, clear the list, or quit normally. Source files and clipboard contents are preserved. In text fields, `⌘V` pastes text normally.
+Pasted image data is stored as a local temporary copy (the original animated GIF/WebP data, or a PNG that preserves transparency). IMGX removes its own temporary copies when you remove the item, clear the list, or quit normally. Source files and clipboard contents are preserved. In text fields, `⌘V` pastes text normally.
 
 ### Folder exports
 
@@ -96,13 +96,15 @@ Pages render at **300 DPI on a white background**, respecting crop bounds and ro
 
 | Type | Support |
 | --- | --- |
-| Image input | Static JPG, JPEG, PNG, WebP, and HEIC images |
+| Image input | JPG, JPEG, PNG, HEIC, GIF, and WebP (including animated GIF/WebP) |
 | Document input | PDF, converted page by page |
-| Image output | WebP, JPEG (`.jpg`), PNG |
-| Transparency | Preserved in PNG and WebP; flattened onto white for JPEG |
+| Image output | WebP, JPEG (`.jpg`), PNG, GIF |
+| Transparency | Preserved in PNG and WebP; GIF uses palette transparency; JPEG flattens onto white |
 | Output dimensions | Up to 16,383 pixels per edge and 100 million pixels total |
 
-Animation is not preserved. Complete preservation of EXIF, ICC, HDR, or other metadata is not guaranteed; keep your originals if you need this information. The file list and settings do not persist between launches.
+Animated GIF and WebP inputs retain their frames, timing, and playback count when exported as GIF or WebP. PNG/JPEG exports use the first frame, as indicated in the preview. GIF uses up to 256 colors and cannot preserve partial alpha; colors and transparency are quantized. GIF timing uses hundredths of a second. Animated inputs and outputs are limited to 500 frames and 32 million total frame pixels. The preview plays source and result together; Reduce Motion shows a still frame without changing the exported animation.
+
+Complete preservation of EXIF, ICC, HDR, or other metadata is not guaranteed; keep your originals if you need this information. The file list and settings do not persist between launches.
 
 Rendered PDF pages are subject to the same dimension and pixel limits. Locked encrypted PDFs, corrupt documents, and documents without pages cannot be imported. A page that fails to preview or export reports an error without preventing other valid items from being processed.
 
@@ -179,7 +181,7 @@ open dist/IMGX.app
 
 `build-app.sh` defaults to a Release build with an ad hoc signature for local testing. This is not Developer ID distribution signing or notarization. The app is written to `dist/IMGX.app`.
 
-WebP 1.6.0 and libsharpyuv headers and static libraries are bundled for arm64. Building and running do not depend on Homebrew dynamic libraries. Third-party licenses are copied into the app's Resources directory.
+WebP 1.6.0 (including mux/demux) and libsharpyuv headers and static libraries are bundled for arm64. Building and running do not depend on Homebrew dynamic libraries. Third-party licenses are copied into the app's Resources directory.
 
 <details>
 <summary>Debug options, tests, and verification scope</summary>
@@ -197,7 +199,7 @@ These environment variables are available only in Debug builds. They do not chan
 | `IMGX_DEV_SMALL_WINDOW=1` | Check the small-window layout |
 | `IMGX_DEV_INPUTS` | Import newline-separated file paths at launch |
 
-The unified check runs 46 Swift tests and 25 offline script tests covering encoding, alpha, EXIF orientation, sizing, import deduplication, folder structure, PDF pages and rotation, cancellation races, preview/export consistency, file protection, canvas accessibility, and update verification. Script tests mock signing and Apple tools without accessing credentials or uploading the app.
+The unified check runs 50 Swift tests and 25 offline script tests covering encoding, alpha, EXIF orientation, sizing, import deduplication, folder structure, PDF pages and rotation, cancellation races, preview/export consistency, file protection, canvas accessibility, and update verification. Script tests mock signing and Apple tools without accessing credentials or uploading the app.
 
 Script tests can also run independently:
 

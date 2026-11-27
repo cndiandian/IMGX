@@ -17,19 +17,24 @@ enum CodecError: LocalizedError {
 }
 
 struct EncodedImage: Sendable {
+    let id = UUID()
     let data: Data
     let original: CGImage
     let decoded: CGImage
+    var originalAnimation: ImageAnimation? = nil
+    var outputAnimation: ImageAnimation? = nil
 }
 
 enum ImageCodec {
-    static let supportedExtensions: Set<String> = ["jpg", "jpeg", "png", "webp", "heic"]
+    static let supportedExtensions: Set<String> = ["jpg", "jpeg", "png", "webp", "heic", "gif"]
     static let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     static let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
 
     static func decode(_ data: Data) throws -> CGImage {
         if let source = CGImageSourceCreateWithData(data as CFData, nil) {
-            guard CGImageSourceGetCount(source) == 1 else { throw CodecError.decode }
+            let type = CGImageSourceGetType(source) as String?
+            let count = CGImageSourceGetCount(source)
+            guard count == 1 || (count > 1 && (type == UTType.gif.identifier || type == UTType.webP.identifier)) else { throw CodecError.decode }
             if let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
                let w = properties[kCGImagePropertyPixelWidth] as? Int,
                let h = properties[kCGImagePropertyPixelHeight] as? Int,
@@ -71,7 +76,7 @@ enum ImageCodec {
     }
 
     static func convert(url: URL, settings: ConversionSettings) throws -> EncodedImage {
-        try convert(image: load(url: url), settings: settings)
+        try convert(sequence: loadSequence(url: url), settings: settings)
     }
 
     static func convert(image: CGImage, settings: ConversionSettings) throws -> EncodedImage {
@@ -81,10 +86,10 @@ enum ImageCodec {
 
     /// 导出只需要编码数据；预览另外解码输出，用于真实画质对比。
     static func encode(url: URL, settings: ConversionSettings, accessRoot: URL? = nil, pageNumber: Int? = nil) throws -> Data {
-        try encode(image: load(url: url, accessRoot: accessRoot, pageNumber: pageNumber), settings: settings)
+        try encode(sequence: loadSequence(url: url, accessRoot: accessRoot, pageNumber: pageNumber), settings: settings)
     }
 
-    static func encode(image: CGImage, settings: ConversionSettings) throws -> Data {
+    static func rasterContext(image: CGImage, settings: ConversionSettings) throws -> CGContext {
         guard settings.quality.isFinite, (1...100).contains(settings.quality) else { throw CodecError.encode }
         let (w, h) = try settings.outputSize(width: image.width, height: image.height)
         guard let context = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8,
@@ -96,6 +101,12 @@ enum ImageCodec {
         }
         context.interpolationQuality = .high
         context.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return context
+    }
+
+    static func encode(image: CGImage, settings: ConversionSettings) throws -> Data {
+        let context = try rasterContext(image: image, settings: settings)
+        let w = context.width, h = context.height
         let data: Data
         if settings.format == .webp {
             guard let raw = context.data else { throw CodecError.encode }
@@ -119,7 +130,7 @@ enum ImageCodec {
         } else {
             guard let raster = context.makeImage() else { throw CodecError.encode }
             let buffer = NSMutableData()
-            let type = settings.format == .jpeg ? UTType.jpeg.identifier : UTType.png.identifier
+            let type = settings.format == .jpeg ? UTType.jpeg.identifier : settings.format == .gif ? UTType.gif.identifier : UTType.png.identifier
             guard let destination = CGImageDestinationCreateWithData(buffer, type as CFString, 1, nil) else { throw CodecError.encode }
             let options: [CFString: Any] = settings.format == .jpeg ? [kCGImageDestinationLossyCompressionQuality: settings.quality / 100] : [:]
             CGImageDestinationAddImage(destination, raster, options as CFDictionary)

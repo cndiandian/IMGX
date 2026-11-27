@@ -36,6 +36,7 @@ func rgba(_ image: CGImage, x: Int, y: Int) throws -> [UInt8] {
             #expect(String(data: result.data.prefix(4), encoding: .ascii) == "RIFF")
             #expect(String(data: result.data[8..<12], encoding: .ascii) == "WEBP")
         case .jpeg: #expect(Array(result.data.prefix(3)) == [0xff, 0xd8, 0xff])
+        case .gif: #expect(String(data: result.data.prefix(3), encoding: .ascii) == "GIF")
         case .png: #expect(Array(result.data.prefix(8)) == [137, 80, 78, 71, 13, 10, 26, 10])
         }
     }

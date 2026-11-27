@@ -67,7 +67,7 @@ final class AppModel {
     }
     private(set) var preview: EncodedImage?
     private(set) var selectedPixelSize: CGSize?
-    @ObservationIgnored private var selectedSource: CGImage?
+    @ObservationIgnored private var selectedSource: ImageSequence?
     private(set) var previewLoading = false
     private(set) var isCopyingResult = false
     var canCopyResult: Bool {
@@ -118,15 +118,15 @@ final class AppModel {
             do {
                 try await Task.sleep(for: .milliseconds(300))
                 guard let self else { return }
-                let source: CGImage
+                let source: ImageSequence
                 if let cached = self.selectedSource { source = cached }
-                else { source = try await ImageProcessor.shared.load(url: item.url, accessRoot: item.importRoot, pageNumber: item.pageNumber) }
+                else { source = try await ImageProcessor.shared.loadSequence(url: item.url, accessRoot: item.importRoot, pageNumber: item.pageNumber) }
                 guard !Task.isCancelled, self.previewRevision == revision else { return }
                 self.selectedSource = source
-                self.selectedPixelSize = CGSize(width: source.width, height: source.height)
-                if snapshot.size == .custom { self.synchronizeDimensions(width: source.width, height: source.height) }
+                self.selectedPixelSize = CGSize(width: source.first.width, height: source.first.height)
+                if snapshot.size == .custom { self.synchronizeDimensions(width: source.first.width, height: source.first.height) }
                 guard !Task.isCancelled, self.previewRevision == revision else { return }
-                let result = try await ImageProcessor.shared.convert(image: source, settings: snapshot)
+                let result = try await ImageProcessor.shared.convert(sequence: source, settings: snapshot)
                 guard !Task.isCancelled, self.previewRevision == revision else { return }
                 self.selectedPixelSize = CGSize(width: result.original.width, height: result.original.height)
                 self.preview = result
@@ -218,7 +218,7 @@ final class AppModel {
         guard !isExporting, NSApp.mainWindow?.attachedSheet == nil else { return }
         let panel = NSOpenPanel()
         panel.title = L10n.text(.chooseInput)
-        panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic, .pdf, .folder]
+        panel.allowedContentTypes = [UTType.jpeg, .png, .webP, .heic, .gif, .pdf, .folder]
         panel.prompt = L10n.text(.open)
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = true

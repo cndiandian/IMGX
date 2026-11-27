@@ -15,6 +15,7 @@ struct ComparisonCanvas: NSViewRepresentable {
     let remove: () -> Void
 
     func makeNSView(context: Context) -> ComparisonView { ComparisonView() }
+    static func dismantleNSView(_ view: ComparisonView, coordinator: ()) { view.stopAnimation() }
     func updateNSView(_ view: ComparisonView, context: Context) {
         if view.imageID != imageID || view.resetID != resetID {
             view.reset()
@@ -22,8 +23,7 @@ struct ComparisonCanvas: NSViewRepresentable {
         view.imageID = imageID
         view.resetID = resetID
         view.mode = mode
-        view.original = result?.original
-        view.output = result?.decoded
+        view.setResult(result)
         view.remove = remove
         view.needsDisplay = true
         view.window?.invalidateCursorRects(for: view)
@@ -43,6 +43,58 @@ final class ComparisonView: NSView {
     private var lastPoint = CGPoint.zero
     private var draggingDivider = false
     private var draggingImage = false
+
+    private var resultID: UUID?
+    private var animationResult: EncodedImage?
+    private var animationTimer: Timer?
+    private var animationStart: TimeInterval = 0
+
+    func setResult(_ result: EncodedImage?) {
+        guard resultID != result?.id else { return }
+        stopAnimation()
+        resultID = result?.id
+        animationResult = result
+        original = result?.original
+        output = result?.decoded
+        startAnimation()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        stopAnimation()
+        if window != nil { startAnimation() }
+    }
+
+    private func startAnimation() {
+        guard window != nil, animationResult?.outputAnimation != nil,
+              !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        animationStart = ProcessInfo.processInfo.systemUptime
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.window?.isVisible == true, NSApp.isActive else { return }
+                guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+                    self.stopAnimation()
+                    self.original = self.animationResult?.original
+                    self.output = self.animationResult?.decoded
+                    self.needsDisplay = true
+                    return
+                }
+                let elapsed = ProcessInfo.processInfo.systemUptime - self.animationStart
+                self.original = self.animationResult?.originalAnimation?.image(at: elapsed) ?? self.animationResult?.original
+                self.output = self.animationResult?.outputAnimation?.image(at: elapsed) ?? self.animationResult?.decoded
+                self.needsDisplay = true
+                if let animation = self.animationResult?.outputAnimation, animation.playCount > 0,
+                   elapsed >= animation.duration * Double(animation.playCount) { self.stopAnimation() }
+            }
+        }
+        animationTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    func stopAnimation() {
+        animationTimer?.invalidate()
+        animationTimer = nil
+    }
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }

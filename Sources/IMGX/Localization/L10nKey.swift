@@ -47,6 +47,10 @@ enum L10nKey: String, CaseIterable, Sendable {
     case exportImages
     case exportFailures
     case preview
+    case animationTooLarge
+    case animationFirstFrame
+    case animationPreview
+    case gifPaletteHelp
     case exportProgress
     case currentPage
     case previewResult

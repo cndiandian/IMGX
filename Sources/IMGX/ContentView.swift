@@ -157,6 +157,16 @@ struct ContentView: View {
                              resetID: resetCanvas, remove: { model.removeSelected() })
             if model.previewLoading { ProgressView().controlSize(.regular).accessibilityLabel(L10n.text(.encodingPreview)).padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12)) }
             else if model.preview == nil { ContentUnavailableView(L10n.text(.previewUnavailable), systemImage: "exclamationmark.triangle", description: Text(L10n.text(.previewRetry))) }
+            if let animation = model.preview?.originalAnimation {
+                VStack {
+                    Spacer()
+                    Text(model.settings.format == .png || model.settings.format == .jpeg
+                         ? L10n.text(.animationFirstFrame)
+                         : L10n.text(.animationPreview, String(animation.frames.count)))
+                        .font(.caption).padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 7))
+                }.padding(.bottom, 54).allowsHitTesting(false)
+            }
             if model.preview != nil {
                 VStack {
                     HStack {
@@ -186,9 +196,9 @@ struct ContentView: View {
                 Slider(value: $model.settings.quality, in: 1...100, step: 1).tint(.primary)
                     .disabled(!model.settings.usesQuality).frame(minWidth: 60, maxWidth: 110)
                     .accessibilityLabel(L10n.text(.compressionQuality))
-                    .accessibilityValue(model.settings.usesQuality ? L10n.text(.qualityRange, String(Int(model.settings.quality))) : L10n.text(.losslessRange))
-                    .help(model.settings.usesQuality ? L10n.text(.qualityHelp, String(Int(model.settings.quality))) : L10n.text(.losslessHelp))
-                Text(model.settings.usesQuality ? "\(Int(model.settings.quality))" : L10n.text(.lossless))
+                    .accessibilityValue(model.settings.format == .gif ? L10n.text(.gifPaletteHelp) : model.settings.usesQuality ? L10n.text(.qualityRange, String(Int(model.settings.quality))) : L10n.text(.losslessRange))
+                    .help(model.settings.format == .gif ? L10n.text(.gifPaletteHelp) : model.settings.usesQuality ? L10n.text(.qualityHelp, String(Int(model.settings.quality))) : L10n.text(.losslessHelp))
+                Text(model.settings.qualityLabel)
                     .monospacedDigit().fixedSize(horizontal: true, vertical: false).frame(minWidth: 28)
             }
             Picker(L10n.text(.size), selection: $model.settings.size) {
@@ -242,7 +252,7 @@ struct ContentView: View {
                 .help(L10n.text(.addImagesHelp))
                 .padding(.top, 30)
             Text(L10n.text(.dropHint)).foregroundStyle(.secondary).padding(.top, 16)
-            Text("JPG · JPEG · PNG · WebP · HEIC · PDF")
+            Text("JPG · JPEG · PNG · WebP · HEIC · GIF · PDF")
                 .font(.system(size: 11)).foregroundStyle(.secondary).padding(.top, 24)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -362,7 +372,7 @@ struct ContentView: View {
             VStack(spacing: 16) {
                 Image(systemName: "square.and.arrow.down").font(.system(size: 40))
                 Text(L10n.text(.releaseToAdd)).font(.title2.weight(.semibold))
-                Text("JPG · JPEG · PNG · WebP · HEIC · PDF").foregroundStyle(.secondary)
+                Text("JPG · JPEG · PNG · WebP · HEIC · GIF · PDF").foregroundStyle(.secondary)
                 Text(L10n.text(.localOriginals)).font(.caption).foregroundStyle(.secondary)
             }
         }

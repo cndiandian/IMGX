@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 /// 系统粘贴命令只在用户操作时提供数据，不轮询或改写系统剪贴板。
 enum ClipboardImport {
-    static let contentTypes: [UTType] = [.fileURL, .png, .tiff, .jpeg, .webP, .heic, .image]
+    static let contentTypes: [UTType] = [.fileURL, .gif, .webP, .png, .tiff, .jpeg, .heic, .image]
 
     @MainActor static func providers(from pasteboard: NSPasteboard) -> [NSItemProvider] {
         (pasteboard.pasteboardItems ?? []).compactMap { item in
@@ -57,10 +57,10 @@ final class ClipboardImageStore: Sendable {
 
     func discardAll() { try? FileManager.default.removeItem(at: directory) }
 
-    func write(_ data: Data, name: String) throws -> URL {
+    func write(_ data: Data, name: String, fileExtension: String = "png") throws -> URL {
         let batch = directory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: batch, withIntermediateDirectories: true)
-        let url = batch.appendingPathComponent(name).appendingPathExtension("png")
+        let url = batch.appendingPathComponent(name).appendingPathExtension(fileExtension)
         do { try data.write(to: url, options: .withoutOverwriting) }
         catch { try? FileManager.default.removeItem(at: batch); throw error }
         return url
@@ -89,11 +89,16 @@ extension ImageProcessor {
                 try Task.checkCancellation()
                 do {
                     let url = try autoreleasepool {
+                        let filename = images.count > 1 ? "\(name)-\(index + 1)" : name
+                        if let animation = try AnimationCodec.decode(data) {
+                            try Task.checkCancellation()
+                            // 保存原始动图数据，避免粘贴时被 PNG 兼容表示静态化。
+                            return try store.write(data, name: filename, fileExtension: animation.format.fileExtension)
+                        }
                         let image = try ImageCodec.decode(data)
                         var settings = ConversionSettings()
                         settings.format = .png
                         let png = try ImageCodec.encode(image: image, settings: settings)
-                        let filename = images.count > 1 ? "\(name)-\(index + 1)" : name
                         try Task.checkCancellation()
                         return try store.write(png, name: filename)
                     }

@@ -11,7 +11,7 @@ struct AdvancedSettingsView: View {
             if model.settings.format == .webp {
                 Toggle(L10n.text(.webpLossless), isOn: $model.settings.lossless)
             }
-            Text(model.settings.format == .jpeg ? L10n.text(.jpegTransparency) : L10n.text(.keepTransparency))
+            Text(model.settings.format == .gif ? L10n.text(.gifPaletteHelp) : model.settings.format == .jpeg ? L10n.text(.jpegTransparency) : L10n.text(.keepTransparency))
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
             Text(L10n.text(.customSize)).fontWeight(.medium)
